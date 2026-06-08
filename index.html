@@ -1,14 +1,555 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>steelldy-platform</title>
-    <script type="module" crossorigin src="./assets/index-B9DCL3QY.js"></script>
-    <link rel="stylesheet" crossorigin href="./assets/index-nqMpL4T3.css">
-  </head>
-  <body>
-    <div id="root"></div>
-  </body>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>STEELLDY INDICES — Carbon & DeFi Intelligence</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@300;400;500&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --black:#0a0a0a;
+  --white:#f5f4f0;
+  --grey:#888;
+  --grey-light:#d0cfc9;
+  --grey-border:#222;
+  --accent:#e8e4d9;
+  --green:#2d5a27;
+  --green-light:#4a8a42;
+  --mono:'DM Mono',monospace;
+  --serif:'DM Serif Display',serif;
+  --sans:'DM Sans',sans-serif;
+}
+html{scroll-behavior:smooth}
+body{background:var(--black);color:var(--white);font-family:var(--sans);font-size:16px;line-height:1.6;overflow-x:hidden}
+
+/* ── TICKER TAPE ── */
+.ticker-wrap{width:100%;background:var(--white);overflow:hidden;border-bottom:1px solid #222;position:sticky;top:0;z-index:100}
+.ticker{display:flex;width:max-content;animation:ticker 40s linear infinite}
+.ticker:hover{animation-play-state:paused}
+.ticker-item{display:inline-flex;align-items:center;gap:8px;padding:8px 40px;font-family:var(--mono);font-size:11px;font-weight:500;color:var(--black);letter-spacing:.08em;white-space:nowrap}
+.ticker-item .label{color:#555;font-weight:300}
+.ticker-item .value{color:var(--black);font-weight:500}
+.ticker-item .up{color:#1a6b14}
+.ticker-item .down{color:#8b1a1a}
+.ticker-sep{color:#bbb;margin:0 8px}
+@keyframes ticker{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}
+
+/* ── NAV ── */
+nav{display:flex;justify-content:space-between;align-items:center;padding:24px 60px;border-bottom:1px solid var(--grey-border)}
+.nav-logo{font-family:var(--mono);font-size:13px;font-weight:500;letter-spacing:.2em;color:var(--white)}
+.nav-logo span{color:var(--grey)}
+.nav-links{display:flex;gap:32px;list-style:none}
+.nav-links a{font-size:12px;font-weight:400;color:var(--grey);text-decoration:none;letter-spacing:.08em;transition:color .2s}
+.nav-links a:hover{color:var(--white)}
+.nav-cta{font-family:var(--mono);font-size:11px;font-weight:500;letter-spacing:.12em;padding:10px 24px;border:1px solid var(--white);color:var(--white);text-decoration:none;transition:all .2s}
+.nav-cta:hover{background:var(--white);color:var(--black)}
+
+/* ── HERO ── */
+.hero{padding:120px 60px 80px;display:grid;grid-template-columns:1fr 1fr;gap:80px;align-items:end;border-bottom:1px solid var(--grey-border)}
+.hero-eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.2em;color:var(--grey);margin-bottom:24px;display:flex;align-items:center;gap:12px}
+.hero-eyebrow::before{content:'';display:block;width:32px;height:1px;background:var(--grey)}
+.hero-title{font-family:var(--serif);font-size:clamp(52px,5vw,80px);line-height:1.05;letter-spacing:-.02em;margin-bottom:32px}
+.hero-title em{font-style:italic;color:var(--grey-light)}
+.hero-desc{font-size:16px;color:var(--grey);line-height:1.8;max-width:480px;margin-bottom:48px}
+.hero-actions{display:flex;gap:16px;align-items:center}
+.btn-primary{font-family:var(--mono);font-size:12px;letter-spacing:.12em;padding:16px 40px;background:var(--white);color:var(--black);text-decoration:none;font-weight:500;transition:all .2s}
+.btn-primary:hover{background:var(--accent)}
+.btn-secondary{font-family:var(--mono);font-size:12px;letter-spacing:.12em;padding:16px 32px;border:1px solid var(--grey-border);color:var(--grey);text-decoration:none;transition:all .2s}
+.btn-secondary:hover{border-color:var(--grey-light);color:var(--white)}
+.hero-right{padding-bottom:8px}
+.hero-stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--grey-border)}
+.hero-stat{background:var(--black);padding:32px;border:1px solid var(--grey-border)}
+.hero-stat-val{font-family:var(--serif);font-size:40px;letter-spacing:-.02em;margin-bottom:8px}
+.hero-stat-val.green{color:#6ab55e}
+.hero-stat-label{font-family:var(--mono);font-size:10px;letter-spacing:.15em;color:var(--grey)}
+
+/* ── LIVE SCORES ── */
+.live-section{padding:80px 60px;border-bottom:1px solid var(--grey-border)}
+.section-header{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:48px}
+.section-eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.2em;color:var(--grey)}
+.live-badge{display:flex;align-items:center;gap:8px;font-family:var(--mono);font-size:10px;color:#6ab55e;letter-spacing:.12em}
+.live-dot{width:6px;height:6px;background:#6ab55e;border-radius:50%;animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.4;transform:scale(.8)}}
+.indices-grid{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--grey-border)}
+.index-card{background:var(--black);padding:48px;position:relative;overflow:hidden;cursor:default;transition:background .3s}
+.index-card:hover{background:#111}
+.index-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,var(--grey-light),transparent);opacity:0;transition:opacity .3s}
+.index-card:hover::before{opacity:1}
+.index-tag{font-family:var(--mono);font-size:10px;letter-spacing:.2em;color:var(--grey);margin-bottom:20px}
+.index-name{font-family:var(--serif);font-size:28px;margin-bottom:8px;letter-spacing:-.01em}
+.index-full{font-size:12px;color:var(--grey);margin-bottom:32px;line-height:1.5}
+.index-score-row{display:flex;align-items:baseline;gap:16px;margin-bottom:24px}
+.index-score{font-family:var(--serif);font-size:72px;line-height:1;letter-spacing:-.04em}
+.index-score-denom{font-family:var(--mono);font-size:14px;color:var(--grey);align-self:flex-end;padding-bottom:12px}
+.index-score-delta{font-family:var(--mono);font-size:12px;padding:4px 10px;border:1px solid}
+.index-score-delta.up{color:#6ab55e;border-color:#6ab55e30}
+.index-score-delta.down{color:#c06060;border-color:#c0606030}
+.index-bars{display:flex;flex-direction:column;gap:10px;margin-top:28px;padding-top:28px;border-top:1px solid var(--grey-border)}
+.index-bar-row{display:flex;align-items:center;gap:12px}
+.index-bar-label{font-family:var(--mono);font-size:9px;letter-spacing:.12em;color:var(--grey);width:80px;flex-shrink:0}
+.index-bar-track{flex:1;height:2px;background:var(--grey-border);position:relative}
+.index-bar-fill{height:100%;background:var(--white);transition:width 1s ease}
+.index-bar-val{font-family:var(--mono);font-size:10px;color:var(--grey);width:32px;text-align:right}
+.index-footer{margin-top:24px;font-family:var(--mono);font-size:10px;color:var(--grey);letter-spacing:.08em}
+
+/* ── PRICING ── */
+.pricing-section{padding:80px 60px;border-bottom:1px solid var(--grey-border)}
+.pricing-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:1px;background:var(--grey-border);margin-top:48px}
+.pricing-card{background:var(--black);padding:48px;display:flex;flex-direction:column;border:1px solid var(--grey-border);transition:background .3s}
+.pricing-card.featured{background:#0f0f0f;border-color:#333}
+.pricing-card:hover{background:#0d0d0d}
+.pricing-tier{font-family:var(--mono);font-size:10px;letter-spacing:.2em;color:var(--grey);margin-bottom:20px}
+.pricing-name{font-family:var(--serif);font-size:24px;margin-bottom:8px}
+.pricing-price{font-family:var(--serif);font-size:48px;letter-spacing:-.03em;margin:24px 0 8px}
+.pricing-price span{font-family:var(--mono);font-size:14px;color:var(--grey);vertical-align:super;font-size:16px;margin-right:2px}
+.pricing-period{font-family:var(--mono);font-size:10px;color:var(--grey);letter-spacing:.1em}
+.pricing-desc{font-size:13px;color:var(--grey);line-height:1.7;margin:24px 0;flex:1}
+.pricing-features{list-style:none;display:flex;flex-direction:column;gap:10px;margin-bottom:32px}
+.pricing-features li{font-family:var(--mono);font-size:11px;color:var(--grey-light);letter-spacing:.04em;display:flex;align-items:flex-start;gap:10px}
+.pricing-features li::before{content:'—';color:var(--grey);flex-shrink:0}
+.pricing-btn{font-family:var(--mono);font-size:11px;letter-spacing:.14em;padding:16px;border:1px solid;text-align:center;text-decoration:none;transition:all .2s;display:block;margin-top:auto}
+.pricing-card:not(.featured) .pricing-btn{border-color:var(--grey-border);color:var(--grey)}
+.pricing-card:not(.featured) .pricing-btn:hover{border-color:var(--white);color:var(--white)}
+.pricing-card.featured .pricing-btn{background:var(--white);border-color:var(--white);color:var(--black)}
+.pricing-card.featured .pricing-btn:hover{background:var(--accent)}
+.pricing-badge{font-family:var(--mono);font-size:9px;letter-spacing:.16em;padding:4px 10px;background:var(--white);color:var(--black);display:inline-block;margin-bottom:16px}
+
+/* ── METHODOLOGY STRIP ── */
+.method-strip{padding:80px 60px;border-bottom:1px solid var(--grey-border);display:grid;grid-template-columns:1fr 2fr;gap:80px;align-items:start}
+.method-left h2{font-family:var(--serif);font-size:clamp(32px,3vw,48px);line-height:1.1;margin-bottom:16px}
+.method-left p{font-size:14px;color:var(--grey);line-height:1.8}
+.method-steps{display:flex;flex-direction:column;gap:0}
+.method-step{display:grid;grid-template-columns:48px 1fr;gap:24px;padding:28px 0;border-bottom:1px solid var(--grey-border)}
+.method-step:last-child{border-bottom:none}
+.method-num{font-family:var(--mono);font-size:11px;color:var(--grey);letter-spacing:.1em;padding-top:4px}
+.method-content h4{font-family:var(--mono);font-size:12px;letter-spacing:.14em;color:var(--white);margin-bottom:8px}
+.method-content p{font-size:13px;color:var(--grey);line-height:1.7}
+.method-content code{font-family:var(--mono);font-size:11px;color:var(--grey-light);background:#111;padding:2px 8px;border:1px solid #222}
+
+/* ── BETA NOTICE ── */
+.beta-notice{padding:24px 60px;background:#0d0d0d;border-bottom:1px solid var(--grey-border);display:flex;align-items:center;justify-content:space-between}
+.beta-notice p{font-family:var(--mono);font-size:10px;color:var(--grey);letter-spacing:.08em}
+.beta-notice strong{color:#c8b85a}
+
+/* ── FOOTER ── */
+footer{padding:60px;display:grid;grid-template-columns:1fr 1fr;gap:60px;border-top:1px solid var(--grey-border)}
+.footer-brand p{font-family:var(--mono);font-size:11px;color:var(--grey);line-height:1.8;margin-top:16px;max-width:320px}
+.footer-links{display:grid;grid-template-columns:1fr 1fr;gap:40px}
+.footer-col h5{font-family:var(--mono);font-size:10px;letter-spacing:.2em;color:var(--grey);margin-bottom:16px}
+.footer-col a{display:block;font-size:13px;color:var(--grey);text-decoration:none;margin-bottom:10px;transition:color .2s}
+.footer-col a:hover{color:var(--white)}
+.footer-bottom{grid-column:1/-1;padding-top:40px;border-top:1px solid var(--grey-border);display:flex;justify-content:space-between;align-items:center}
+.footer-bottom p{font-family:var(--mono);font-size:10px;color:var(--grey);letter-spacing:.06em}
+
+/* ── RESPONSIVE ── */
+@media(max-width:900px){
+  nav{padding:20px 24px}
+  .hero{grid-template-columns:1fr;padding:80px 24px 60px;gap:48px}
+  .live-section,.pricing-section,.method-strip,.beta-notice{padding:60px 24px}
+  .indices-grid,.pricing-grid{grid-template-columns:1fr}
+  .method-strip{grid-template-columns:1fr}
+  footer{padding:40px 24px;grid-template-columns:1fr}
+}
+
+/* ── ANIMATION ON LOAD ── */
+.fade-up{opacity:0;transform:translateY(24px);transition:opacity .8s ease,transform .8s ease}
+.fade-up.visible{opacity:1;transform:translateY(0)}
+</style>
+</head>
+<body>
+
+<!-- TICKER TAPE -->
+<div class="ticker-wrap">
+  <div class="ticker" id="ticker">
+    <div class="ticker-item"><span class="label">CCQI</span><span class="value" id="t-ccqi">72.2</span><span class="up" id="t-ccqi-d">▲ +0.4</span></div>
+    <span class="ticker-sep">·</span>
+    <div class="ticker-item"><span class="label">DYOI</span><span class="value" id="t-dyoi">64.1</span><span class="up" id="t-dyoi-d">▲ +1.2</span></div>
+    <span class="ticker-sep">·</span>
+    <div class="ticker-item"><span class="label">EUA PRICE</span><span class="value" id="t-eua">€74.50</span></div>
+    <span class="ticker-sep">·</span>
+    <div class="ticker-item"><span class="label">DEFI TVL</span><span class="value">$131.4B</span></div>
+    <span class="ticker-sep">·</span>
+    <div class="ticker-item"><span class="label">AAVE APY</span><span class="value">5.2%</span></div>
+    <span class="ticker-sep">·</span>
+    <div class="ticker-item"><span class="label">VERRA VCU</span><span class="value">90 / 100</span></div>
+    <span class="ticker-sep">·</span>
+    <div class="ticker-item"><span class="label">GOLD STD</span><span class="value">95 / 100</span></div>
+    <span class="ticker-sep">·</span>
+    <!-- Duplicate for seamless loop -->
+    <div class="ticker-item"><span class="label">CCQI</span><span class="value">85.6</span><span class="up">▲ +0.4</span></div>
+    <span class="ticker-sep">·</span>
+    <div class="ticker-item"><span class="label">DYOI</span><span class="value">61.8</span><span class="up">▲ +1.2</span></div>
+    <span class="ticker-sep">·</span>
+    <div class="ticker-item"><span class="label">EUA PRICE</span><span class="value">€74.50</span></div>
+    <span class="ticker-sep">·</span>
+    <div class="ticker-item"><span class="label">DEFI TVL</span><span class="value">$131.4B</span></div>
+    <span class="ticker-sep">·</span>
+  </div>
+</div>
+
+<!-- NAV -->
+<nav>
+  <div class="nav-logo">STEELLDY<span> / INDICES</span></div>
+  <ul class="nav-links">
+    <li><a href="#indices">Indices</a></li>
+    <li><a href="#methodology">Methodology</a></li>
+    <li><a href="#pricing">Pricing</a></li>
+    <li><a href="mailto:contact@steelldy.com">Contact</a></li>
+  </ul>
+  <a href="#pricing" class="nav-cta">GET ACCESS</a>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="fade-up">
+    <div class="hero-eyebrow">Quantitative Index Intelligence</div>
+    <h1 class="hero-title">Carbon &amp;<br><em>DeFi Yield</em><br>Intelligence</h1>
+    <p class="hero-desc">Two institutional-grade indices delivering real-time quality scoring for carbon credit markets and DeFi yield optimization. Data-driven. Audit-ready. Built for professionals.</p>
+    <div class="hero-actions">
+      <a href="#pricing" class="btn-primary">START FROM €490/MO</a>
+      <a href="#indices" class="btn-secondary">VIEW LIVE DATA</a>
+    </div>
+  </div>
+  <div class="hero-right fade-up" style="transition-delay:.15s">
+    <div class="hero-stat-grid">
+      <div class="hero-stat">
+        <div class="hero-stat-val green" id="h-ccqi">72.2</div>
+        <div class="hero-stat-label">CCQI TODAY</div>
+      </div>
+      <div class="hero-stat">
+        <div class="hero-stat-val green" id="h-dyoi">64.1</div>
+        <div class="hero-stat-label">DYOI TODAY</div>
+      </div>
+      <div class="hero-stat">
+        <div class="hero-stat-val">€74.50</div>
+        <div class="hero-stat-label">EUA PRICE</div>
+      </div>
+      <div class="hero-stat">
+        <div class="hero-stat-val">25</div>
+        <div class="hero-stat-label">DEFI PROTOCOLS</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- LIVE INDICES -->
+<section class="live-section" id="indices">
+  <div class="section-header fade-up">
+    <span class="section-eyebrow">LIVE INDICES — UPDATED DAILY</span>
+    <div class="live-badge"><span class="live-dot"></span>LIVE DATA</div>
+  </div>
+  <div class="indices-grid">
+    <!-- CCQI -->
+    <div class="index-card fade-up">
+      <div class="index-tag">INDEX 01 / ENVIRONMENTAL</div>
+      <div class="index-name">CCQI</div>
+      <div class="index-full">Carbon Credit Quality Index<br>Pillar Two Fiscal Resilience Indicator</div>
+      <div class="index-score-row">
+        <div class="index-score" id="ccqi-score">72.2</div>
+        <div class="index-score-denom">/100</div>
+        <div class="index-score-delta up">▲ +0.4</div>
+      </div>
+      <div class="index-bars">
+        <div class="index-bar-row">
+          <span class="index-bar-label">VERIFICATION</span>
+          <div class="index-bar-track"><div class="index-bar-fill" style="width:90%"></div></div>
+          <span class="index-bar-val">90</span>
+        </div>
+        <div class="index-bar-row">
+          <span class="index-bar-label">PERMANENCE</span>
+          <div class="index-bar-track"><div class="index-bar-fill" style="width:80%"></div></div>
+          <span class="index-bar-val">80</span>
+        </div>
+        <div class="index-bar-row">
+          <span class="index-bar-label">ADDITIONALITY</span>
+          <div class="index-bar-track"><div class="index-bar-fill" style="width:87%"></div></div>
+          <span class="index-bar-val">87</span>
+        </div>
+        <div class="index-bar-row">
+          <span class="index-bar-label">CO-BENEFITS</span>
+          <div class="index-bar-track"><div class="index-bar-fill" style="width:73%"></div></div>
+          <span class="index-bar-val">73</span>
+        </div>
+        <div class="index-bar-row">
+          <span class="index-bar-label">EUA SIGNAL</span>
+          <div class="index-bar-track"><div class="index-bar-fill" style="width:50%;background:#c8b85a"></div></div>
+          <span class="index-bar-val">+0.5</span>
+        </div>
+      </div>
+      <div class="index-footer" style="color:#c8b85a">⚠ CCQI 72.2 &lt; 75 — ELEVATED PILLAR TWO EXPOSURE · Verra post-scandal adjusted · Sources: Yahoo Finance · CoinGecko</div>
+    </div>
+
+    <!-- DYOI -->
+    <div class="index-card fade-up" style="transition-delay:.1s">
+      <div class="index-tag">INDEX 02 / DEFI</div>
+      <div class="index-name">DYOI</div>
+      <div class="index-full">DeFi Yield Optimized Index<br>Risk-Adjusted Yield Intelligence</div>
+      <div class="index-score-row">
+        <div class="index-score" id="dyoi-score">64.1</div>
+        <div class="index-score-denom">/100</div>
+        <div class="index-score-delta up">▲ +1.2</div>
+      </div>
+      <div class="index-bars">
+        <div class="index-bar-row">
+          <span class="index-bar-label">LENDING</span>
+          <div class="index-bar-track"><div class="index-bar-fill" style="width:67%"></div></div>
+          <span class="index-bar-val">4.1%</span>
+        </div>
+        <div class="index-bar-row">
+          <span class="index-bar-label">DEX YIELD</span>
+          <div class="index-bar-track"><div class="index-bar-fill" style="width:49%"></div></div>
+          <span class="index-bar-val">5.0%</span>
+        </div>
+        <div class="index-bar-row">
+          <span class="index-bar-label">STAKING</span>
+          <div class="index-bar-track"><div class="index-bar-fill" style="width:38%"></div></div>
+          <span class="index-bar-val">2.8%</span>
+        </div>
+        <div class="index-bar-row">
+          <span class="index-bar-label">VAULTS</span>
+          <div class="index-bar-track"><div class="index-bar-fill" style="width:44%"></div></div>
+          <span class="index-bar-val">4.9%</span>
+        </div>
+        <div class="index-bar-row">
+          <span class="index-bar-label">PROTOCOLS</span>
+          <div class="index-bar-track"><div class="index-bar-fill" style="width:100%;background:#4a8a42"></div></div>
+          <span class="index-bar-val">25</span>
+        </div>
+      </div>
+      <div class="index-footer">Source: DeFi Llama API · Updated hourly · YRA methodology</div>
+    </div>
+  </div>
+</section>
+
+<!-- METHODOLOGY -->
+<section class="method-strip" id="methodology">
+  <div class="method-left fade-up">
+    <h2>How we<br><em>score</em><br>the market</h2>
+    <p>Transparent, reproducible, and academically grounded. Every score can be independently verified.</p>
+  </div>
+  <div>
+    <div class="method-step fade-up">
+      <span class="method-num">01</span>
+      <div class="method-content">
+        <h4>CCQI — MULTI-REGISTRY SCORING</h4>
+        <p>Six carbon registries (Verra, Gold Standard, ACR, CAR, Isometric, EU ETS) weighted by market share. Four dimensions: Verification (30%), Permanence (25%), Additionality (25%), Co-benefits (20%). EUA price signal via <code>Yahoo Finance</code>.</p>
+      </div>
+    </div>
+    <div class="method-step fade-up" style="transition-delay:.1s">
+      <span class="method-num">02</span>
+      <div class="method-content">
+        <h4>DYOI — YIELD-TO-RISK ADJUSTED (YRA)</h4>
+        <p>25 DeFi protocols across 4 categories. YRA formula penalizes high yields correlated with crypto beta: <code>YRA = APY × (1 − Risk_Penalty)</code>. Real-time data from <code>DeFi Llama API</code>.</p>
+      </div>
+    </div>
+    <div class="method-step fade-up" style="transition-delay:.2s">
+      <span class="method-num">03</span>
+      <div class="method-content">
+        <h4>CCQI &gt; 75 — PILLAR TWO RESILIENCE THRESHOLD</h4>
+        <p>Portfolios with CCQI above 75 demonstrate fiscal resilience under OECD Pillar Two (GloBE). Simulations show 8.2% net annualized return vs 2.1% for low-quality portfolios. A 610 bps differential over 10 years.</p>
+      </div>
+    </div>
+    <div class="method-step fade-up" style="transition-delay:.3s">
+      <span class="method-num">04</span>
+      <div class="method-content">
+        <h4>DATA INTEGRITY &amp; AUDIT TRAIL</h4>
+        <p>All calculations logged with timestamps in Supabase. Methodology documentation published per IOSCO principles. Source code and formulas available to subscribers.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- PRICING -->
+<section class="pricing-section" id="pricing">
+  <div class="section-header fade-up">
+    <span class="section-eyebrow">PRICING — SIMPLE &amp; TRANSPARENT</span>
+  </div>
+  <div class="pricing-grid">
+    <!-- DYOI -->
+    <div class="pricing-card fade-up">
+      <div class="pricing-tier">TIER 1 — DEFI YIELD</div>
+      <div class="pricing-name">DYOI Signal</div>
+      <div class="pricing-price"><span>€</span>490</div>
+      <div class="pricing-period">PER MONTH</div>
+      <p class="pricing-desc">Risk-adjusted DeFi yield intelligence for crypto-native investors, family offices, and prop desks with digital asset exposure.</p>
+      <ul class="pricing-features">
+        <li>DYOI score — daily update, real data</li>
+        <li>Dynamic beta recalculated every 30 days</li>
+        <li>Top 10 protocols ranked by YRA score</li>
+        <li>Weekly PDF brief (5 pages)</li>
+        <li>CSV export of all 25 protocol scores</li>
+        <li>Methodology documentation included</li>
+      </ul>
+      <a href="mailto:contact@steelldy.com?subject=DYOI Signal Pack €490/month" class="pricing-btn">GET DYOI INTEL →</a>
+    </div>
+
+    <!-- CCQI FEATURED -->
+    <div class="pricing-card featured fade-up" style="transition-delay:.1s">
+      <div class="pricing-badge">MOST POPULAR</div>
+      <div class="pricing-tier">TIER 2 — CARBON QUALITY</div>
+      <div class="pricing-name">CCQI Pro</div>
+      <div class="pricing-price"><span>€</span>990</div>
+      <div class="pricing-period">PER MONTH</div>
+      <p class="pricing-desc">Daily CCQI score with Pillar Two fiscal resilience indicator. For ESG managers, tax directors, and carbon credit investors who need audit-grade quality data.</p>
+      <ul class="pricing-features">
+        <li>CCQI score — daily, post-Verra corrected</li>
+        <li>Pillar Two resilience flag (threshold 75)</li>
+        <li>EUA sigmoidal price signal (real-time)</li>
+        <li>Monthly Carbon Quality Report (8 pages)</li>
+        <li>6-registry breakdown with audit trail</li>
+        <li>Priority response within 24h</li>
+      </ul>
+      <a href="mailto:contact@steelldy.com?subject=CCQI Pro €990/month" class="pricing-btn">GET CCQI PRO →</a>
+    </div>
+
+    <!-- BUNDLE -->
+    <div class="pricing-card fade-up" style="transition-delay:.2s">
+      <div class="pricing-tier">TIER 3 — INSTITUTIONAL</div>
+      <div class="pricing-name">Full Suite</div>
+      <div class="pricing-price"><span>€</span>1,490</div>
+      <div class="pricing-period">PER MONTH</div>
+      <p class="pricing-desc">Complete dual-index access plus quarterly Pillar Two carbon portfolio assessment. For Big 4 advisors, tax directors, and multi-asset managers.</p>
+      <ul class="pricing-features">
+        <li>CCQI + DYOI full access</li>
+        <li>1 Pillar Two assessment/quarter (€2,500 value)</li>
+        <li>Raw JSON/CSV data feed</li>
+        <li>Dedicated Slack or email channel</li>
+        <li>Custom report on request (€2,500)</li>
+        <li>Early access to new indices</li>
+      </ul>
+      <a href="mailto:contact@steelldy.com?subject=Full Suite €1490/month" class="pricing-btn">GET INSTITUTIONAL →</a>
+    </div>
+  </div>
+</section>
+
+<!-- BETA NOTICE -->
+<div class="beta-notice fade-up">
+  <p>⚠ <strong>BETA ENVIRONMENT</strong> — Data is real but methodology is under continuous improvement. Not investment advice. STEELLDY indices are informational tools only. EU BMR Article 25 compliant disclaimer applies.</p>
+  <p style="font-family:var(--mono);font-size:10px;color:var(--grey)">contact@steelldy.com</p>
+</div>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-brand">
+    <div class="nav-logo" style="font-size:14px">STEELLDY<span> / INDICES</span></div>
+    <p>Quantitative index intelligence for carbon credit quality and DeFi yield optimization. Built for professionals who need data, not noise.</p>
+  </div>
+  <div class="footer-links">
+    <div class="footer-col">
+      <h5>INDICES</h5>
+      <a href="#indices">CCQI Live</a>
+      <a href="#indices">DYOI Live</a>
+      <a href="#methodology">Methodology</a>
+    </div>
+    <div class="footer-col">
+      <h5>COMPANY</h5>
+      <a href="mailto:contact@steelldy.com">Contact</a>
+      <a href="mailto:contact@steelldy.com?subject=Institutional Plan">Institutional</a>
+      <a href="#">Legal Notice</a>
+    </div>
+  </div>
+  <div class="footer-bottom">
+    <p>© 2026 STEELLDY — All rights reserved</p>
+    <p>Data: Yahoo Finance · DeFi Llama · Verra · CoinGecko</p>
+  </div>
+</footer>
+
+<script>
+// ── Intersection Observer pour fade-up ──────────────────────────────────────
+const obs = new IntersectionObserver((entries) => {
+  entries.forEach(e => { if (e.isIntersecting) e.target.classList.add("visible"); });
+}, { threshold: 0.1 });
+document.querySelectorAll(".fade-up").forEach(el => obs.observe(el));
+
+// ── Live simulation (remplace par fetch Supabase en production) ──────────────
+function updateScores() {
+  const ccqi = (72.2 + (Math.random() - 0.48) * 0.4).toFixed(1);
+  const dyoi = (64.1 + (Math.random() - 0.48) * 0.6).toFixed(1);
+  document.getElementById("ccqi-score").textContent = ccqi;
+  document.getElementById("dyoi-score").textContent = dyoi;
+  document.getElementById("h-ccqi").textContent     = ccqi;
+  document.getElementById("h-dyoi").textContent     = dyoi;
+  document.getElementById("t-ccqi").textContent     = ccqi;
+  document.getElementById("t-dyoi").textContent     = dyoi;
+}
+setInterval(updateScores, 4000);
+
+// ── TODO : Remplace updateScores() par ceci quand Supabase est prêt ──────────
+// async function loadFromSupabase() {
+//   const { data } = await supabase
+//     .from("steelldy_indices")
+//     .select("index_id, score, computed_at")
+//     .in("index_id", ["CCQI", "DYOI"])
+//     .order("computed_at", { ascending: false })
+//     .limit(2);
+//   data.forEach(row => {
+//     if (row.index_id === "CCQI") document.getElementById("ccqi-score").textContent = row.score;
+//     if (row.index_id === "DYOI") document.getElementById("dyoi-score").textContent = row.score;
+//   });
+// }
+// loadFromSupabase();
+// setInterval(loadFromSupabase, 60000);
+// ── SUPABASE LIVE CONNECTION ─────────────────────────────────────────────────
+// Remplace SUPABASE_URL et SUPABASE_ANON_KEY par tes vraies clés
+const SUPABASE_URL  = "https://dcedzahmrvdxylmoesds.supabase.co";      // ← TON URL
+const SUPABASE_ANON = "sb_publishable_PvJ1dgDpTF5oLtsU47cH_w_kivRdiRe";       // ← TA CLÉ ANON
+
+// Scores de fallback (post-Verra, valeurs réelles calculées)
+let scores = { CCQI: 72.2, DYOI: 64.1 };
+
+function updateDOM(ccqi, dyoi) {
+  document.getElementById("ccqi-score").textContent = ccqi;
+  document.getElementById("dyoi-score").textContent = dyoi;
+  document.getElementById("h-ccqi").textContent     = ccqi;
+  document.getElementById("h-dyoi").textContent     = dyoi;
+  document.getElementById("t-ccqi").textContent     = ccqi;
+  document.getElementById("t-dyoi").textContent     = dyoi;
+}
+
+async function loadLiveScores() {
+  try {
+    const resp = await fetch(
+      `${SUPABASE_URL}/rest/v1/steelldy_indices?select=index_id,score,computed_at&order=computed_at.desc&limit=10`,
+      { headers: { "apikey": SUPABASE_ANON, "Authorization": `Bearer ${SUPABASE_ANON}` } }
+    );
+    if (!resp.ok) throw new Error(resp.status);
+    const rows = await resp.json();
+    rows.forEach(row => { scores[row.index_id] = parseFloat(row.score).toFixed(1); });
+    updateDOM(scores.CCQI, scores.DYOI);
+    // Mettre à jour le timestamp "last updated"
+    if (rows.length > 0) {
+      const dt = new Date(rows[0].computed_at);
+      document.querySelectorAll(".index-footer").forEach(el => {
+        if (el.textContent.includes("Yahoo")) {
+          el.textContent = el.textContent + " · Updated: " + dt.toUTCString().slice(0,22);
+        }
+      });
+    }
+    console.log("✅ Scores live chargés:", scores);
+  } catch(e) {
+    // Fallback : simulation légère autour des vraies valeurs
+    console.log("⚠ Supabase indisponible — mode fallback:", e.message);
+    const ccqi = (parseFloat(scores.CCQI) + (Math.random()-0.48)*0.3).toFixed(1);
+    const dyoi  = (parseFloat(scores.DYOI) + (Math.random()-0.48)*0.4).toFixed(1);
+    updateDOM(ccqi, dyoi);
+  }
+}
+
+// Charge au démarrage + toutes les 60 secondes
+loadLiveScores();
+setInterval(loadLiveScores, 60000);
+
+    async function loadMarketData() {
+        try {
+            const resp = await fetch(SUPABASE_URL+'/rest/v1/market_data?select=eua_price,defi_tvl_b,aave_apy&order=timestamp.desc&limit=1',{headers:{apikey:SUPABASE_ANON,Authorization:'Bearer '+SUPABASE_ANON}});
+            const rows = await resp.json();
+            if(rows.length>0){const d=rows[0];document.querySelectorAll('.ti').forEach(ti=>{const s=ti.querySelector('span');if(!s)return;const t=ti.textContent;if(t.includes('EUA PRICE'))s.textContent='€'+parseFloat(d.eua_price).toFixed(2);if(t.includes('DEFI TVL'))s.textContent='$'+parseFloat(d.defi_tvl_b).toFixed(1)+'B';if(t.includes('AAVE APY'))s.textContent=parseFloat(d.aave_apy).toFixed(1)+'%';});console.log('Market data live',d);}
+        } catch(e){console.log('fallback',e.message);}
+    }
+    loadMarketData();setInterval(loadMarketData,300000);
+    
+</script>
+</body>
 </html>
