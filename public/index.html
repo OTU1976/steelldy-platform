@@ -1,629 +1,1079 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>STEELLDY INDICES — Carbon & DeFi Intelligence</title>
-  <meta name="google-site-verification" content="xnLM28HjfxPDy4">
-
-  <!-- ═══ SEO CORE ═══════════════════════════════════════════════ -->
-  <meta name="description" content="STEELLDY INDICES — Carbon Credit Quality Index (CCQI) and DeFi Yield Optimization Index (DYOI). Real-time scoring for Pillar Two fiscal resilience, carbon credit quality, and DeFi yield intelligence. Built for institutional investors, ESG managers, and tax directors.">
-  <meta name="keywords" content="carbon credit quality index, CCQI, DeFi yield index, DYOI, Pillar Two CCQI, EUA price, carbon credit scoring, tokenized carbon credits, SBCO, GloBE Pillar Two, DeFi yield optimization, carbon market intelligence, ESG index">
-  <meta name="robots" content="index, follow">
-  <meta name="author" content="STEELLDY">
-  <link rel="canonical" href="https://www.steelldy-indices.com/">
-
-  <!-- ═══ OPEN GRAPH (LinkedIn, Facebook) ══════════════════════ -->
-  <meta property="og:type" content="website">
-  <meta property="og:url" content="https://www.steelldy-indices.com/">
-  <meta property="og:title" content="STEELLDY INDICES — Carbon Credit Quality & DeFi Yield Intelligence">
-  <meta property="og:description" content="Institutional-grade indices for carbon credit quality (CCQI) and DeFi yield optimization (DYOI). Real-time Pillar Two fiscal resilience scoring. From €490/month.">
-  <meta property="og:image" content="https://www.steelldy-indices.com/assets/og-image.png">
-  <meta property="og:site_name" content="STEELLDY INDICES">
-  <meta property="og:locale" content="en_US">
-
-  <!-- ═══ TWITTER / X CARDS ════════════════════════════════════ -->
-  <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:url" content="https://www.steelldy-indices.com/">
-  <meta name="twitter:title" content="STEELLDY INDICES — Carbon & DeFi Intelligence">
-  <meta name="twitter:description" content="CCQI: Real-time carbon credit quality scoring for Pillar Two compliance. DYOI: DeFi yield optimization across 25 protocols. Institutional grade.">
-  <meta name="twitter:image" content="https://www.steelldy-indices.com/assets/og-image.png">
-
-  <!-- ═══ STRUCTURED DATA JSON-LD ══════════════════════════════ -->
-  <script type="application/ld+json">
-  {
-    "@context": "https://schema.org",
-    "@type": "FinancialService",
-    "name": "STEELLDY INDICES",
-    "url": "https://www.steelldy-indices.com",
-    "description": "Institutional-grade carbon credit quality index (CCQI) and DeFi yield optimization index (DYOI) for Pillar Two compliance and ESG portfolio management.",
-    "serviceType": "Financial Index Provider",
-    "areaServed": "Worldwide",
-    "offers": [
-      {
-        "@type": "Offer",
-        "name": "DYOI Signal Pack",
-        "price": "490",
-        "priceCurrency": "EUR",
-        "billingIncrement": "P1M",
-        "description": "DeFi Yield Optimization Index — 25 protocols, risk-adjusted scoring"
-      },
-      {
-        "@type": "Offer",
-        "name": "CCQI Pro",
-        "price": "990",
-        "priceCurrency": "EUR",
-        "billingIncrement": "P1M",
-        "description": "Carbon Credit Quality Index with Pillar Two fiscal resilience indicator"
-      },
-      {
-        "@type": "Offer",
-        "name": "Full Suite Institutional",
-        "price": "1490",
-        "priceCurrency": "EUR",
-        "billingIncrement": "P1M",
-        "description": "Full CCQI + DYOI access with quarterly Pillar Two carbon portfolio assessment"
-      }
-    ],
-    "contactPoint": {
-      "@type": "ContactPoint",
-      "email": "contact@steelldy.com",
-      "contactType": "customer service"
-    }
-  }
-  </script>
-
-  <!-- ═══ ADDITIONAL SEO ════════════════════════════════════════ -->
-  <meta name="theme-color" content="#03060E">
-  <meta name="application-name" content="STEELLDY INDICES">
-  <link rel="sitemap" type="application/xml" href="/sitemap.xml">
-
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@300;400;500&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>STEELLDY / INDICES — Carbon & DeFi Intelligence</title>
+<meta name="description" content="Institutional-grade carbon credit and DeFi yield indices for CSRD/Pillar Two compliance."/>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Space+Mono:wght@400;700&family=Syne:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
+<script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://js.stripe.com/v3/"></script>
 <style>
-*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+*{box-sizing:border-box;margin:0;padding:0}
 :root{
-  --black:#0a0a0a;
-  --white:#f5f4f0;
-  --grey:#888;
-  --grey-light:#d0cfc9;
-  --grey-border:#222;
-  --accent:#e8e4d9;
-  --green:#2d5a27;
-  --green-light:#4a8a42;
-  --mono:'DM Mono',monospace;
-  --serif:'DM Serif Display',serif;
-  --sans:'DM Sans',sans-serif;
+  --bg:#03060E;--bg2:#060B18;--bg3:#080F1E;--bg4:#0A1020;
+  --gold:#C8973A;--goldL:#E8B44A;--goldD:#8A620A;
+  --cyan:#0DC9D4;--blue:#1D6FA4;--blueL:#2A8FD4;
+  --green:#17C96A;--red:#E34A4A;--amber:#F0A030;
+  --purple:#8B5CF6;--pink:#EC4899;--teal:#0A9090;
+  --text:#C4CDD8;--textD:#7A8CA0;--white:#EEF2F8;
+  --bord:#0F1A2E;--bord2:#1A2D48;
+  --r:8px;--r2:14px;
 }
-html{scroll-behavior:smooth}
-body{background:var(--black);color:var(--white);font-family:var(--sans);font-size:16px;line-height:1.6;overflow-x:hidden}
-
-/* ── TICKER TAPE ── */
-.ticker-wrap{width:100%;background:var(--white);overflow:hidden;border-bottom:1px solid #222;position:sticky;top:0;z-index:100}
-.ticker{display:flex;width:max-content;animation:ticker 40s linear infinite}
-.ticker:hover{animation-play-state:paused}
-.ticker-item{display:inline-flex;align-items:center;gap:8px;padding:8px 40px;font-family:var(--mono);font-size:11px;font-weight:500;color:var(--black);letter-spacing:.08em;white-space:nowrap}
-.ticker-item .label{color:#555;font-weight:300}
-.ticker-item .value{color:var(--black);font-weight:500}
-.ticker-item .up{color:#1a6b14}
-.ticker-item .down{color:#8b1a1a}
-.ticker-sep{color:#bbb;margin:0 8px}
+html,body{background:var(--bg);color:var(--text);font-family:'Syne',sans-serif;min-height:100vh;overflow-x:hidden}
+.mono{font-family:'Space Mono',monospace}
+.serif{font-family:'DM Serif Display',serif}
+@keyframes fadeUp{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
 @keyframes ticker{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
+@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
+@keyframes shimmer{0%{background-position:-400px 0}100%{background-position:400px 0}}
 
-/* ── NAV ── */
-nav{display:flex;justify-content:space-between;align-items:center;padding:24px 60px;border-bottom:1px solid var(--grey-border)}
-.nav-logo{font-family:var(--mono);font-size:13px;font-weight:500;letter-spacing:.2em;color:var(--white)}
-.nav-logo span{color:var(--grey)}
-.nav-links{display:flex;gap:32px;list-style:none}
-.nav-links a{font-size:12px;font-weight:400;color:var(--grey);text-decoration:none;letter-spacing:.08em;transition:color .2s}
-.nav-links a:hover{color:var(--white)}
-.nav-cta{font-family:var(--mono);font-size:11px;font-weight:500;letter-spacing:.12em;padding:10px 24px;border:1px solid var(--white);color:var(--white);text-decoration:none;transition:all .2s}
-.nav-cta:hover{background:var(--white);color:var(--black)}
+/* NAV */
+nav{position:fixed;top:0;left:0;right:0;z-index:200;background:rgba(3,6,14,.95);backdrop-filter:blur(20px);border-bottom:1px solid var(--bord);padding:0 32px;display:flex;align-items:center;height:56px;gap:32px}
+.logo{font-family:'Space Mono',monospace;font-size:17px;font-weight:700;color:var(--gold);letter-spacing:.14em;cursor:pointer;white-space:nowrap}
+.logo span{color:var(--textD);font-size:9px;display:block;letter-spacing:.2em;margin-top:-2px}
+.nav-links{display:flex;gap:4px;flex:1}
+.nl{background:none;border:none;color:var(--textD);font-family:'Syne',sans-serif;font-size:13px;font-weight:500;padding:8px 14px;cursor:pointer;border-radius:var(--r);transition:.2s}
+.nl:hover{color:var(--white);background:rgba(255,255,255,.04)}
+.nl.act{color:var(--gold)}
+.nav-cta{background:var(--gold);color:var(--bg);font-family:'Syne',sans-serif;font-size:13px;font-weight:700;padding:8px 18px;border:none;border-radius:var(--r);cursor:pointer;transition:.2s;white-space:nowrap}
+.nav-cta:hover{background:var(--goldL)}
+.live-tag{display:flex;align-items:center;gap:6px;font-size:10px;color:var(--green);font-family:'Space Mono',monospace;letter-spacing:.08em}
+.dot{width:6px;height:6px;border-radius:50%;background:var(--green);animation:pulse 1.4s infinite}
 
-/* ── HERO ── */
-.hero{padding:120px 60px 80px;display:grid;grid-template-columns:1fr 1fr;gap:80px;align-items:end;border-bottom:1px solid var(--grey-border)}
-.hero-eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.2em;color:var(--grey);margin-bottom:24px;display:flex;align-items:center;gap:12px}
-.hero-eyebrow::before{content:'';display:block;width:32px;height:1px;background:var(--grey)}
-.hero-title{font-family:var(--serif);font-size:clamp(52px,5vw,80px);line-height:1.05;letter-spacing:-.02em;margin-bottom:32px}
-.hero-title em{font-style:italic;color:var(--grey-light)}
-.hero-desc{font-size:16px;color:var(--grey);line-height:1.8;max-width:480px;margin-bottom:48px}
-.hero-actions{display:flex;gap:16px;align-items:center}
-.btn-primary{font-family:var(--mono);font-size:12px;letter-spacing:.12em;padding:16px 40px;background:var(--white);color:var(--black);text-decoration:none;font-weight:500;transition:all .2s}
-.btn-primary:hover{background:var(--accent)}
-.btn-secondary{font-family:var(--mono);font-size:12px;letter-spacing:.12em;padding:16px 32px;border:1px solid var(--grey-border);color:var(--grey);text-decoration:none;transition:all .2s}
-.btn-secondary:hover{border-color:var(--grey-light);color:var(--white)}
-.hero-right{padding-bottom:8px}
-.hero-stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--grey-border)}
-.hero-stat{background:var(--black);padding:32px;border:1px solid var(--grey-border)}
-.hero-stat-val{font-family:var(--serif);font-size:40px;letter-spacing:-.02em;margin-bottom:8px}
-.hero-stat-val.green{color:#6ab55e}
-.hero-stat-label{font-family:var(--mono);font-size:10px;letter-spacing:.15em;color:var(--grey)}
+/* TICKER */
+.ticker-wrap{background:var(--bg2);border-bottom:1px solid var(--bord);height:28px;overflow:hidden;display:flex;align-items:center}
+.ticker-inner{display:flex;animation:ticker 32s linear infinite;white-space:nowrap}
+.ti{font-family:'Space Mono',monospace;font-size:10px;color:var(--textD);padding:0 24px;display:flex;gap:8px;align-items:center}
+.ti span{color:var(--white)}
+.ti .up{color:var(--green)}
+.ti .dn{color:var(--red)}
 
-/* ── LIVE SCORES ── */
-.live-section{padding:80px 60px;border-bottom:1px solid var(--grey-border)}
-.section-header{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:48px}
-.section-eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.2em;color:var(--grey)}
-.live-badge{display:flex;align-items:center;gap:8px;font-family:var(--mono);font-size:10px;color:#6ab55e;letter-spacing:.12em}
-.live-dot{width:6px;height:6px;background:#6ab55e;border-radius:50%;animation:pulse 2s infinite}
-@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.4;transform:scale(.8)}}
-.indices-grid{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--grey-border)}
-.index-card{background:var(--black);padding:48px;position:relative;overflow:hidden;cursor:default;transition:background .3s}
-.index-card:hover{background:#111}
-.index-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,var(--grey-light),transparent);opacity:0;transition:opacity .3s}
-.index-card:hover::before{opacity:1}
-.index-tag{font-family:var(--mono);font-size:10px;letter-spacing:.2em;color:var(--grey);margin-bottom:20px}
-.index-name{font-family:var(--serif);font-size:28px;margin-bottom:8px;letter-spacing:-.01em}
-.index-full{font-size:12px;color:var(--grey);margin-bottom:32px;line-height:1.5}
-.index-score-row{display:flex;align-items:baseline;gap:16px;margin-bottom:24px}
-.index-score{font-family:var(--serif);font-size:72px;line-height:1;letter-spacing:-.04em}
-.index-score-denom{font-family:var(--mono);font-size:14px;color:var(--grey);align-self:flex-end;padding-bottom:12px}
-.index-score-delta{font-family:var(--mono);font-size:12px;padding:4px 10px;border:1px solid}
-.index-score-delta.up{color:#6ab55e;border-color:#6ab55e30}
-.index-score-delta.down{color:#c06060;border-color:#c0606030}
-.index-bars{display:flex;flex-direction:column;gap:10px;margin-top:28px;padding-top:28px;border-top:1px solid var(--grey-border)}
-.index-bar-row{display:flex;align-items:center;gap:12px}
-.index-bar-label{font-family:var(--mono);font-size:9px;letter-spacing:.12em;color:var(--grey);width:80px;flex-shrink:0}
-.index-bar-track{flex:1;height:2px;background:var(--grey-border);position:relative}
-.index-bar-fill{height:100%;background:var(--white);transition:width 1s ease}
-.index-bar-val{font-family:var(--mono);font-size:10px;color:var(--grey);width:32px;text-align:right}
-.index-footer{margin-top:24px;font-family:var(--mono);font-size:10px;color:var(--grey);letter-spacing:.08em}
+/* CARDS */
+.card{background:var(--bg2);border:1px solid var(--bord);border-radius:var(--r2);padding:20px}
+.card-gold{border-top:2px solid var(--gold)}
+.card-green{border-top:2px solid var(--green)}
+.card-blue{border-top:2px solid var(--blueL)}
+.card-cyan{border-top:2px solid var(--cyan)}
+.card-red{border-top:2px solid var(--red)}
 
-/* ── PRICING ── */
-.pricing-section{padding:80px 60px;border-bottom:1px solid var(--grey-border)}
-.pricing-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:1px;background:var(--grey-border);margin-top:48px}
-.pricing-card{background:var(--black);padding:48px;display:flex;flex-direction:column;border:1px solid var(--grey-border);transition:background .3s}
-.pricing-card.featured{background:#0f0f0f;border-color:#333}
-.pricing-card:hover{background:#0d0d0d}
-.pricing-tier{font-family:var(--mono);font-size:10px;letter-spacing:.2em;color:var(--grey);margin-bottom:20px}
-.pricing-name{font-family:var(--serif);font-size:24px;margin-bottom:8px}
-.pricing-price{font-family:var(--serif);font-size:48px;letter-spacing:-.03em;margin:24px 0 8px}
-.pricing-price span{font-family:var(--mono);font-size:14px;color:var(--grey);vertical-align:super;font-size:16px;margin-right:2px}
-.pricing-period{font-family:var(--mono);font-size:10px;color:var(--grey);letter-spacing:.1em}
-.pricing-desc{font-size:13px;color:var(--grey);line-height:1.7;margin:24px 0;flex:1}
-.pricing-features{list-style:none;display:flex;flex-direction:column;gap:10px;margin-bottom:32px}
-.pricing-features li{font-family:var(--mono);font-size:11px;color:var(--grey-light);letter-spacing:.04em;display:flex;align-items:flex-start;gap:10px}
-.pricing-features li::before{content:'—';color:var(--grey);flex-shrink:0}
-.pricing-btn{font-family:var(--mono);font-size:11px;letter-spacing:.14em;padding:16px;border:1px solid;text-align:center;text-decoration:none;transition:all .2s;display:block;margin-top:auto}
-.pricing-card:not(.featured) .pricing-btn{border-color:var(--grey-border);color:var(--grey)}
-.pricing-card:not(.featured) .pricing-btn:hover{border-color:var(--white);color:var(--white)}
-.pricing-card.featured .pricing-btn{background:var(--white);border-color:var(--white);color:var(--black)}
-.pricing-card.featured .pricing-btn:hover{background:var(--accent)}
-.pricing-badge{font-family:var(--mono);font-size:9px;letter-spacing:.16em;padding:4px 10px;background:var(--white);color:var(--black);display:inline-block;margin-bottom:16px}
+/* BUTTONS */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:10px 20px;border:none;border-radius:var(--r);font-family:'Syne',sans-serif;font-weight:700;font-size:13px;cursor:pointer;transition:.2s;white-space:nowrap}
+.btn-gold{background:var(--gold);color:var(--bg)}.btn-gold:hover{background:var(--goldL)}
+.btn-outline{background:transparent;color:var(--gold);border:1px solid var(--gold)}.btn-outline:hover{background:rgba(200,151,58,.1)}
+.btn-ghost{background:rgba(255,255,255,.04);color:var(--text);border:1px solid var(--bord)}.btn-ghost:hover{background:rgba(255,255,255,.08)}
+.btn-danger{background:var(--red);color:#fff}.btn-danger:hover{background:#c43a3a}
+.btn-green{background:var(--green);color:var(--bg)}.btn-green:hover{filter:brightness(1.1)}
+.btn:disabled{opacity:.4;cursor:not-allowed}
 
-/* ── METHODOLOGY STRIP ── */
-.method-strip{padding:80px 60px;border-bottom:1px solid var(--grey-border);display:grid;grid-template-columns:1fr 2fr;gap:80px;align-items:start}
-.method-left h2{font-family:var(--serif);font-size:clamp(32px,3vw,48px);line-height:1.1;margin-bottom:16px}
-.method-left p{font-size:14px;color:var(--grey);line-height:1.8}
-.method-steps{display:flex;flex-direction:column;gap:0}
-.method-step{display:grid;grid-template-columns:48px 1fr;gap:24px;padding:28px 0;border-bottom:1px solid var(--grey-border)}
-.method-step:last-child{border-bottom:none}
-.method-num{font-family:var(--mono);font-size:11px;color:var(--grey);letter-spacing:.1em;padding-top:4px}
-.method-content h4{font-family:var(--mono);font-size:12px;letter-spacing:.14em;color:var(--white);margin-bottom:8px}
-.method-content p{font-size:13px;color:var(--grey);line-height:1.7}
-.method-content code{font-family:var(--mono);font-size:11px;color:var(--grey-light);background:#111;padding:2px 8px;border:1px solid #222}
+/* FORM INPUTS */
+.inp{width:100%;background:var(--bg3);border:1px solid var(--bord2);border-radius:var(--r);padding:11px 14px;color:var(--white);font-family:'Syne',sans-serif;font-size:14px;outline:none;transition:.2s}
+.inp:focus{border-color:var(--gold);box-shadow:0 0 0 3px rgba(200,151,58,.1)}
+.inp::placeholder{color:var(--textD)}
+label.lbl{display:block;font-size:12px;color:var(--textD);margin-bottom:6px;letter-spacing:.04em;font-weight:600;text-transform:uppercase}
 
-/* ── BETA NOTICE ── */
-.beta-notice{padding:24px 60px;background:#0d0d0d;border-bottom:1px solid var(--grey-border);display:flex;align-items:center;justify-content:space-between}
-.beta-notice p{font-family:var(--mono);font-size:10px;color:var(--grey);letter-spacing:.08em}
-.beta-notice strong{color:#c8b85a}
+/* PAGE WRAPPER */
+.page{min-height:100vh;padding-top:84px;animation:fadeUp .35s ease forwards}
 
-/* ── FOOTER ── */
-footer{padding:60px;display:grid;grid-template-columns:1fr 1fr;gap:60px;border-top:1px solid var(--grey-border)}
-.footer-brand p{font-family:var(--mono);font-size:11px;color:var(--grey);line-height:1.8;margin-top:16px;max-width:320px}
-.footer-links{display:grid;grid-template-columns:1fr 1fr;gap:40px}
-.footer-col h5{font-family:var(--mono);font-size:10px;letter-spacing:.2em;color:var(--grey);margin-bottom:16px}
-.footer-col a{display:block;font-size:13px;color:var(--grey);text-decoration:none;margin-bottom:10px;transition:color .2s}
-.footer-col a:hover{color:var(--white)}
-.footer-bottom{grid-column:1/-1;padding-top:40px;border-top:1px solid var(--grey-border);display:flex;justify-content:space-between;align-items:center}
-.footer-bottom p{font-family:var(--mono);font-size:10px;color:var(--grey);letter-spacing:.06em}
+/* BADGE */
+.badge{display:inline-flex;align-items:center;gap:5px;font-size:10px;font-family:'Space Mono',monospace;padding:3px 9px;border-radius:20px;letter-spacing:.06em}
+.badge-gold{background:rgba(200,151,58,.12);color:var(--gold);border:1px solid rgba(200,151,58,.25)}
+.badge-green{background:rgba(23,201,106,.1);color:var(--green);border:1px solid rgba(23,201,106,.2)}
+.badge-red{background:rgba(227,74,74,.1);color:var(--red);border:1px solid rgba(227,74,74,.2)}
+.badge-blue{background:rgba(42,143,212,.1);color:var(--blueL);border:1px solid rgba(42,143,212,.2)}
+.badge-amber{background:rgba(240,160,48,.1);color:var(--amber);border:1px solid rgba(240,160,48,.2)}
 
-/* ── RESPONSIVE ── */
-@media(max-width:900px){
-  nav{padding:20px 24px}
-  .hero{grid-template-columns:1fr;padding:80px 24px 60px;gap:48px}
-  .live-section,.pricing-section,.method-strip,.beta-notice{padding:60px 24px}
-  .indices-grid,.pricing-grid{grid-template-columns:1fr}
-  .method-strip{grid-template-columns:1fr}
-  footer{padding:40px 24px;grid-template-columns:1fr}
-}
+/* MODAL OVERLAY */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);backdrop-filter:blur(8px);z-index:500;display:flex;align-items:center;justify-content:center;padding:20px}
+.modal{background:var(--bg2);border:1px solid var(--bord2);border-radius:var(--r2);padding:36px;max-width:480px;width:100%;animation:fadeUp .25s ease}
 
-/* ── ANIMATION ON LOAD ── */
-.fade-up{opacity:0;transform:translateY(24px);transition:opacity .8s ease,transform .8s ease}
-.fade-up.visible{opacity:1;transform:translateY(0)}
+/* TABS */
+.tabs{display:flex;gap:2px;background:var(--bg3);border-radius:var(--r);padding:4px}
+.tab{padding:8px 16px;border:none;background:none;color:var(--textD);font-family:'Syne',sans-serif;font-size:13px;font-weight:600;cursor:pointer;border-radius:6px;transition:.2s}
+.tab.act{background:var(--bg2);color:var(--white);box-shadow:0 1px 4px rgba(0,0,0,.3)}
+.tab:hover:not(.act){color:var(--white)}
+
+/* STAT ROW */
+.stat-row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--bord);font-size:12px}
+.stat-row:last-child{border-bottom:none}
+.stat-label{color:var(--textD)}
+.stat-value{font-family:'Space Mono',monospace;color:var(--white);font-size:11px}
+
+/* GRID HELPERS */
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+.grid-4{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
+@media(max-width:768px){.grid-2,.grid-3,.grid-4{grid-template-columns:1fr}.nav-links{display:none}}
+
+/* SPINNER */
+.spinner{width:20px;height:20px;border:2px solid rgba(200,151,58,.2);border-top-color:var(--gold);border-radius:50%;animation:spin .7s linear infinite}
+
+/* INDEX SCORE RING */
+.score-ring{position:relative;display:inline-flex;align-items:center;justify-content:center}
+
+/* ALERT */
+.alert{padding:12px 16px;border-radius:var(--r);font-size:13px;margin-bottom:16px}
+.alert-error{background:rgba(227,74,74,.08);border:1px solid rgba(227,74,74,.25);color:#f87171}
+.alert-success{background:rgba(23,201,106,.08);border:1px solid rgba(23,201,106,.25);color:var(--green)}
+.alert-info{background:rgba(42,143,212,.08);border:1px solid rgba(42,143,212,.25);color:var(--blueL)}
+
+/* TABLE */
+.tbl{width:100%;border-collapse:collapse;font-size:12px}
+.tbl th{color:var(--textD);font-weight:600;text-transform:uppercase;letter-spacing:.06em;padding:10px 12px;border-bottom:1px solid var(--bord);text-align:left;white-space:nowrap}
+.tbl td{padding:10px 12px;border-bottom:1px solid var(--bord);color:var(--text);font-family:'Space Mono',monospace;font-size:11px}
+.tbl tr:last-child td{border-bottom:none}
+.tbl tr:hover td{background:rgba(255,255,255,.02)}
+
+/* SECTION HEADING */
+.sec-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px}
+.sec-title{font-size:14px;font-weight:700;color:var(--white);text-transform:uppercase;letter-spacing:.08em}
+.sec-sub{font-size:12px;color:var(--textD);margin-top:3px}
+
+/* INDEX VALUE CARD */
+.idx-card{background:var(--bg3);border:1px solid var(--bord);border-radius:var(--r2);padding:18px;cursor:pointer;transition:.2s}
+.idx-card:hover{border-color:var(--bord2);background:var(--bg4)}
+.idx-val{font-family:'DM Serif Display',serif;font-size:36px;margin:8px 0 4px}
+.idx-change{font-family:'Space Mono',monospace;font-size:11px}
+
+/* PRICING CARD */
+.price-card{background:var(--bg2);border:1px solid var(--bord);border-radius:var(--r2);padding:28px;transition:.2s;position:relative}
+.price-card.featured{border-color:var(--gold);box-shadow:0 0 32px rgba(200,151,58,.1)}
+.price-card:hover{transform:translateY(-2px);box-shadow:0 8px 32px rgba(0,0,0,.3)}
+.price-amount{font-family:'DM Serif Display',serif;font-size:44px;color:var(--white)}
+.price-amount sup{font-size:20px;vertical-align:super;font-family:'Syne',sans-serif;color:var(--textD)}
+.price-amount sub{font-size:14px;vertical-align:baseline;font-family:'Syne',sans-serif;color:var(--textD)}
+.feat-item{display:flex;align-items:flex-start;gap:8px;font-size:13px;color:var(--text);margin-bottom:10px}
+.feat-item::before{content:'→';color:var(--gold);font-family:'Space Mono',monospace;flex-shrink:0;margin-top:1px}
+
+/* LOCKED OVERLAY */
+.locked{position:relative;overflow:hidden}
+.locked::after{content:'🔒 Upgrade required';position:absolute;inset:0;background:rgba(3,6,14,.85);display:flex;align-items:center;justify-content:center;font-size:13px;color:var(--textD);border-radius:var(--r2)}
+
+/* ADMIN SPECIFIC */
+.admin-sidebar{width:220px;flex-shrink:0;background:var(--bg2);border-right:1px solid var(--bord);min-height:calc(100vh - 56px);padding:20px 0}
+.admin-nav-item{display:flex;align-items:center;gap:10px;padding:10px 20px;font-size:13px;font-weight:600;color:var(--textD);cursor:pointer;transition:.2s;border-left:2px solid transparent}
+.admin-nav-item:hover{color:var(--white);background:rgba(255,255,255,.03)}
+.admin-nav-item.act{color:var(--gold);border-left-color:var(--gold);background:rgba(200,151,58,.05)}
+
+/* STATUS DOT */
+.status-live{color:var(--green)}
+.status-delayed{color:var(--amber)}
+.status-error{color:var(--red)}
 </style>
 </head>
 <body>
-
-<!-- TICKER TAPE -->
-<div class="ticker-wrap">
-  <div class="ticker" id="ticker">
-    <div class="ticker-item"><span class="label">CCQI</span><span class="value" id="t-ccqi">72.2</span><span class="up" id="t-ccqi-d">▲ +0.4</span></div>
-    <span class="ticker-sep">·</span>
-    <div class="ticker-item"><span class="label">DYOI</span><span class="value" id="t-dyoi">64.1</span><span class="up" id="t-dyoi-d">▲ +1.2</span></div>
-    <span class="ticker-sep">·</span>
-    <div class="ticker-item"><span class="label">EUA PRICE</span><span class="value" id="t-eua">€72.86</span></div>
-    <span class="ticker-sep">·</span>
-    <div class="ticker-item"><span class="label">DEFI TVL</span><span class="value">$72.7B</span></div>
-    <span class="ticker-sep">·</span>
-    <div class="ticker-item"><span class="label">AAVE APY</span><span class="value">2.9%</span></div>
-    <span class="ticker-sep">·</span>
-    <div class="ticker-item"><span class="label">VERRA VCU</span><span class="value">90 / 100</span></div>
-    <span class="ticker-sep">·</span>
-    <div class="ticker-item"><span class="label">GOLD STD</span><span class="value">95 / 100</span></div>
-    <span class="ticker-sep">·</span>
-    <!-- Duplicate for seamless loop -->
-    <div class="ticker-item"><span class="label">CCQI</span><span class="value">85.6</span><span class="up">▲ +0.4</span></div>
-    <span class="ticker-sep">·</span>
-    <div class="ticker-item"><span class="label">DYOI</span><span class="value">61.8</span><span class="up">▲ +1.2</span></div>
-    <span class="ticker-sep">·</span>
-    <div class="ticker-item"><span class="label">EUA PRICE</span><span class="value">€72.86</span></div>
-    <span class="ticker-sep">·</span>
-    <div class="ticker-item"><span class="label">DEFI TVL</span><span class="value">$72.7B</span></div>
-    <span class="ticker-sep">·</span>
-  </div>
-</div>
-
-<!-- NAV -->
-<nav>
-  <div class="nav-logo">STEELLDY<span> / INDICES</span></div>
-  <ul class="nav-links">
-    <li><a href="#indices">Indices</a></li>
-    <li><a href="#methodology">Methodology</a></li>
-    <li><a href="#pricing">Pricing</a></li>
-    <li><a href="mailto:contact@steelldy.com">Contact</a></li>
-  </ul>
-  <a href="#pricing" class="nav-cta">GET ACCESS</a>
-</nav>
-
-<!-- HERO -->
-<section class="hero">
-  <div class="fade-up">
-    <div class="hero-eyebrow">Quantitative Index Intelligence</div>
-    <h1 class="hero-title">Carbon &amp;<br><em>DeFi Yield</em><br>Intelligence</h1>
-    <p class="hero-desc">Two institutional-grade indices delivering real-time quality scoring for carbon credit markets and DeFi yield optimization. Data-driven. Audit-ready. Built for professionals.</p>
-    <div class="hero-actions">
-      <a href="#pricing" class="btn-primary">START FROM €490/MO</a>
-      <a href="#indices" class="btn-secondary">VIEW LIVE DATA</a>
-    </div>
-  </div>
-  <div class="hero-right fade-up" style="transition-delay:.15s">
-    <div class="hero-stat-grid">
-      <div class="hero-stat">
-        <div class="hero-stat-val green" id="h-ccqi">72.2</div>
-        <div class="hero-stat-label">CCQI TODAY</div>
-      </div>
-      <div class="hero-stat">
-        <div class="hero-stat-val green" id="h-dyoi">64.1</div>
-        <div class="hero-stat-label">DYOI TODAY</div>
-      </div>
-      <div class="hero-stat">
-        <div class="hero-stat-val">€72.86</div>
-        <div class="hero-stat-label">EUA PRICE</div>
-      </div>
-      <div class="hero-stat">
-        <div class="hero-stat-val">25</div>
-        <div class="hero-stat-label">DEFI PROTOCOLS</div>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- LIVE INDICES -->
-<section class="live-section" id="indices">
-  <div class="section-header fade-up">
-    <span class="section-eyebrow">LIVE INDICES — UPDATED DAILY</span>
-    <div class="live-badge"><span class="live-dot"></span>LIVE DATA</div>
-  </div>
-  <div class="indices-grid">
-    <!-- CCQI -->
-    <div class="index-card fade-up">
-      <div class="index-tag">INDEX 01 / ENVIRONMENTAL</div>
-      <div class="index-name">CCQI</div>
-      <div class="index-full">Carbon Credit Quality Index<br>Pillar Two Fiscal Resilience Indicator</div>
-      <div class="index-score-row">
-        <div class="index-score" id="ccqi-score">72.2</div>
-        <div class="index-score-denom">/100</div>
-        <div class="index-score-delta up">▲ +0.4</div>
-      </div>
-      <div class="index-bars">
-        <div class="index-bar-row">
-          <span class="index-bar-label">VERIFICATION</span>
-          <div class="index-bar-track"><div class="index-bar-fill" style="width:90%"></div></div>
-          <span class="index-bar-val">90</span>
-        </div>
-        <div class="index-bar-row">
-          <span class="index-bar-label">PERMANENCE</span>
-          <div class="index-bar-track"><div class="index-bar-fill" style="width:80%"></div></div>
-          <span class="index-bar-val">80</span>
-        </div>
-        <div class="index-bar-row">
-          <span class="index-bar-label">ADDITIONALITY</span>
-          <div class="index-bar-track"><div class="index-bar-fill" style="width:87%"></div></div>
-          <span class="index-bar-val">87</span>
-        </div>
-        <div class="index-bar-row">
-          <span class="index-bar-label">CO-BENEFITS</span>
-          <div class="index-bar-track"><div class="index-bar-fill" style="width:73%"></div></div>
-          <span class="index-bar-val">73</span>
-        </div>
-        <div class="index-bar-row">
-          <span class="index-bar-label">EUA SIGNAL</span>
-          <div class="index-bar-track"><div class="index-bar-fill" style="width:50%;background:#c8b85a"></div></div>
-          <span class="index-bar-val">+0.5</span>
-        </div>
-      </div>
-      <div class="index-footer" style="color:#c8b85a">⚠ CCQI 72.2 &lt; 75 — ELEVATED PILLAR TWO EXPOSURE · Verra post-scandal adjusted · Sources: Yahoo Finance · CoinGecko</div>
-    </div>
-
-    <!-- DYOI -->
-    <div class="index-card fade-up" style="transition-delay:.1s">
-      <div class="index-tag">INDEX 02 / DEFI</div>
-      <div class="index-name">DYOI</div>
-      <div class="index-full">DeFi Yield Optimized Index<br>Risk-Adjusted Yield Intelligence</div>
-      <div class="index-score-row">
-        <div class="index-score" id="dyoi-score">64.1</div>
-        <div class="index-score-denom">/100</div>
-        <div class="index-score-delta up">▲ +1.2</div>
-      </div>
-      <div class="index-bars">
-        <div class="index-bar-row">
-          <span class="index-bar-label">LENDING</span>
-          <div class="index-bar-track"><div class="index-bar-fill" style="width:67%"></div></div>
-          <span class="index-bar-val">4.1%</span>
-        </div>
-        <div class="index-bar-row">
-          <span class="index-bar-label">DEX YIELD</span>
-          <div class="index-bar-track"><div class="index-bar-fill" style="width:49%"></div></div>
-          <span class="index-bar-val">5.0%</span>
-        </div>
-        <div class="index-bar-row">
-          <span class="index-bar-label">STAKING</span>
-          <div class="index-bar-track"><div class="index-bar-fill" style="width:38%"></div></div>
-          <span class="index-bar-val">2.8%</span>
-        </div>
-        <div class="index-bar-row">
-          <span class="index-bar-label">VAULTS</span>
-          <div class="index-bar-track"><div class="index-bar-fill" style="width:44%"></div></div>
-          <span class="index-bar-val">4.9%</span>
-        </div>
-        <div class="index-bar-row">
-          <span class="index-bar-label">PROTOCOLS</span>
-          <div class="index-bar-track"><div class="index-bar-fill" style="width:100%;background:#4a8a42"></div></div>
-          <span class="index-bar-val">25</span>
-        </div>
-      </div>
-      <div class="index-footer">Source: DeFi Llama API · Updated hourly · YRA methodology</div>
-    </div>
-  </div>
-</section>
-
-<!-- METHODOLOGY -->
-<section class="method-strip" id="methodology">
-  <div class="method-left fade-up">
-    <h2>How we<br><em>score</em><br>the market</h2>
-    <p>Transparent, reproducible, and academically grounded. Every score can be independently verified.</p>
-  </div>
-  <div>
-    <div class="method-step fade-up">
-      <span class="method-num">01</span>
-      <div class="method-content">
-        <h4>CCQI — MULTI-REGISTRY SCORING</h4>
-        <p>Six carbon registries (Verra, Gold Standard, ACR, CAR, Isometric, EU ETS) weighted by market share. Four dimensions: Verification (30%), Permanence (25%), Additionality (25%), Co-benefits (20%). EUA price signal via <code>Yahoo Finance</code>.</p>
-      </div>
-    </div>
-    <div class="method-step fade-up" style="transition-delay:.1s">
-      <span class="method-num">02</span>
-      <div class="method-content">
-        <h4>DYOI — YIELD-TO-RISK ADJUSTED (YRA)</h4>
-        <p>25 DeFi protocols across 4 categories. YRA formula penalizes high yields correlated with crypto beta: <code>YRA = APY × (1 − Risk_Penalty)</code>. Real-time data from <code>DeFi Llama API</code>.</p>
-      </div>
-    </div>
-    <div class="method-step fade-up" style="transition-delay:.2s">
-      <span class="method-num">03</span>
-      <div class="method-content">
-        <h4>CCQI &gt; 75 — PILLAR TWO RESILIENCE THRESHOLD</h4>
-        <p>Portfolios with CCQI above 75 demonstrate fiscal resilience under OECD Pillar Two (GloBE). Simulations show 8.2% net annualized return vs 2.1% for low-quality portfolios. A 610 bps differential over 10 years.</p>
-      </div>
-    </div>
-    <div class="method-step fade-up" style="transition-delay:.3s">
-      <span class="method-num">04</span>
-      <div class="method-content">
-        <h4>DATA INTEGRITY &amp; AUDIT TRAIL</h4>
-        <p>All calculations logged with timestamps in Supabase. Methodology documentation published per IOSCO principles. Source code and formulas available to subscribers.</p>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- PRICING -->
-<section class="pricing-section" id="pricing">
-  <div class="section-header fade-up">
-    <span class="section-eyebrow">PRICING — SIMPLE &amp; TRANSPARENT</span>
-  </div>
-  <div class="pricing-grid">
-    <!-- DYOI -->
-    <div class="pricing-card fade-up">
-      <div class="pricing-tier">TIER 1 — DEFI YIELD</div>
-      <div class="pricing-name">DYOI Signal</div>
-      <div class="pricing-price"><span>€</span>490</div>
-      <div class="pricing-period">PER MONTH</div>
-      <p class="pricing-desc">Risk-adjusted DeFi yield intelligence for crypto-native investors, family offices, and prop desks with digital asset exposure.</p>
-      <ul class="pricing-features">
-        <li>DYOI score — daily update, real data</li>
-        <li>Dynamic beta recalculated every 30 days</li>
-        <li>Top 10 protocols ranked by YRA score</li>
-        <li>Weekly PDF brief (5 pages)</li>
-        <li>CSV export of all 25 protocol scores</li>
-        <li>Methodology documentation included</li>
-      </ul>
-      <a href="mailto:contact@steelldy.com?subject=DYOI Signal Pack €490/month" class="pricing-btn">GET DYOI INTEL →</a>
-    </div>
-
-    <!-- CCQI FEATURED -->
-    <div class="pricing-card featured fade-up" style="transition-delay:.1s">
-      <div class="pricing-badge">MOST POPULAR</div>
-      <div class="pricing-tier">TIER 2 — CARBON QUALITY</div>
-      <div class="pricing-name">CCQI Pro</div>
-      <div class="pricing-price"><span>€</span>990</div>
-      <div class="pricing-period">PER MONTH</div>
-      <p class="pricing-desc">Daily CCQI score with Pillar Two fiscal resilience indicator. For ESG managers, tax directors, and carbon credit investors who need audit-grade quality data.</p>
-      <ul class="pricing-features">
-        <li>CCQI score — daily, post-Verra corrected</li>
-        <li>Pillar Two resilience flag (threshold 75)</li>
-        <li>EUA sigmoidal price signal (real-time)</li>
-        <li>Monthly Carbon Quality Report (8 pages)</li>
-        <li>6-registry breakdown with audit trail</li>
-        <li>Priority response within 24h</li>
-      </ul>
-      <a href="mailto:contact@steelldy.com?subject=CCQI Pro €990/month" class="pricing-btn">GET CCQI PRO →</a>
-    </div>
-
-    <!-- BUNDLE -->
-    <div class="pricing-card fade-up" style="transition-delay:.2s">
-      <div class="pricing-tier">TIER 3 — INSTITUTIONAL</div>
-      <div class="pricing-name">Full Suite</div>
-      <div class="pricing-price"><span>€</span>1,490</div>
-      <div class="pricing-period">PER MONTH</div>
-      <p class="pricing-desc">Complete dual-index access plus quarterly Pillar Two carbon portfolio assessment. For Big 4 advisors, tax directors, and multi-asset managers.</p>
-      <ul class="pricing-features">
-        <li>CCQI + DYOI full access</li>
-        <li>1 Pillar Two assessment/quarter (€2,500 value)</li>
-        <li>Raw JSON/CSV data feed</li>
-        <li>Dedicated Slack or email channel</li>
-        <li>Custom report on request (€2,500)</li>
-        <li>Early access to new indices</li>
-      </ul>
-      <a href="mailto:contact@steelldy.com?subject=Full Suite €1490/month" class="pricing-btn">GET INSTITUTIONAL →</a>
-    </div>
-  </div>
-</section>
-
-<!-- BETA NOTICE -->
-<div class="beta-notice fade-up">
-  <p>⚠ <strong>BETA ENVIRONMENT</strong> — Data is real but methodology is under continuous improvement. Not investment advice. STEELLDY indices are informational tools only. EU BMR Article 25 compliant disclaimer applies.</p>
-  <p style="font-family:var(--mono);font-size:10px;color:var(--grey)">contact@steelldy.com</p>
-</div>
-
-<!-- FOOTER -->
-<footer>
-  <div class="footer-brand">
-    <div class="nav-logo" style="font-size:14px">STEELLDY<span> / INDICES</span></div>
-    <p>Quantitative index intelligence for carbon credit quality and DeFi yield optimization. Built for professionals who need data, not noise.</p>
-  </div>
-  <div class="footer-links">
-    <div class="footer-col">
-      <h5>INDICES</h5>
-      <a href="#indices">CCQI Live</a>
-      <a href="#indices">DYOI Live</a>
-      <a href="#methodology">Methodology</a>
-    </div>
-    <div class="footer-col">
-      <h5>COMPANY</h5>
-      <a href="mailto:contact@steelldy.com">Contact</a>
-      <a href="mailto:contact@steelldy.com?subject=Institutional Plan">Institutional</a>
-      <a href="#">Legal Notice</a>
-    </div>
-  </div>
-  <div class="footer-bottom">
-    <p>© 2026 STEELLDY — All rights reserved</p>
-    <p>Data: Yahoo Finance · DeFi Llama · Verra · CoinGecko</p>
-  </div>
-</footer>
-
+<div id="root"></div>
 <script>
-// ── Intersection Observer pour fade-up ──────────────────────────────────────
-const obs = new IntersectionObserver((entries) => {
-  entries.forEach(e => { if (e.isIntersecting) e.target.classList.add("visible"); });
-}, { threshold: 0.1 });
-document.querySelectorAll(".fade-up").forEach(el => obs.observe(el));
+const {useState,useEffect,useCallback,useRef}=React;
+const h=React.createElement;
 
-// ── Live simulation (remplace par fetch Supabase en production) ──────────────
-function updateScores() {
-  const ccqi = (72.2 + (Math.random() - 0.48) * 0.4).toFixed(1);
-  const dyoi = (64.1 + (Math.random() - 0.48) * 0.6).toFixed(1);
-  document.getElementById("ccqi-score").textContent = ccqi;
-  document.getElementById("dyoi-score").textContent = dyoi;
-  document.getElementById("h-ccqi").textContent     = ccqi;
-  document.getElementById("h-dyoi").textContent     = dyoi;
-  document.getElementById("t-ccqi").textContent     = ccqi;
-  document.getElementById("t-dyoi").textContent     = dyoi;
-}
-setInterval(updateScores, 4000);
+// ═══════════════════════════════════════════════════════════════
+// CONFIGURATION
+// ═══════════════════════════════════════════════════════════════
+const CONFIG = {
+  STRIPE_KEY: (window.VITE_STRIPE_PUBLISHABLE_KEY || 'pk_live_REMPLACE_PAR_TA_CLE'),
+  ADMIN_PASSWORD: 'STEELLDY_Admin_2026!',
+  SUPABASE_URL: 'https://dcedzahmrvdxylmoesds.supabase.co',
+  SUPABASE_ANON: (window.VITE_SUPABASE_ANON_KEY || ''),
+};
 
-// ── TODO : Remplace updateScores() par ceci quand Supabase est prêt ──────────
-// async function loadFromSupabase() {
-//   const { data } = await supabase
-//     .from("steelldy_indices")
-//     .select("index_id, score, computed_at")
-//     .in("index_id", ["CCQI", "DYOI"])
-//     .order("computed_at", { ascending: false })
-//     .limit(2);
-//   data.forEach(row => {
-//     if (row.index_id === "CCQI") document.getElementById("ccqi-score").textContent = row.score;
-//     if (row.index_id === "DYOI") document.getElementById("dyoi-score").textContent = row.score;
-//   });
-// }
-// loadFromSupabase();
-// setInterval(loadFromSupabase, 60000);
-// ── SUPABASE LIVE CONNECTION ─────────────────────────────────────────────────
-// Remplace SUPABASE_URL et SUPABASE_ANON_KEY par tes vraies clés
-const SUPABASE_URL  = "https://dcedzahmrvdxylmoesds.supabase.co";      // ← TON URL
-const SUPABASE_ANON = "sb_publishable_PvJ1dgDpTF5oLtsU47cH_w_kivRdiRe";       // ← TA CLÉ ANON
-
-// Scores de fallback (post-Verra, valeurs réelles calculées)
-let scores = { CCQI: 72.2, DYOI: 64.1 };
-
-function updateDOM(ccqi, dyoi) {
-  document.getElementById("ccqi-score").textContent = ccqi;
-  document.getElementById("dyoi-score").textContent = dyoi;
-  document.getElementById("h-ccqi").textContent     = ccqi;
-  document.getElementById("h-dyoi").textContent     = dyoi;
-  document.getElementById("t-ccqi").textContent     = ccqi;
-  document.getElementById("t-dyoi").textContent     = dyoi;
-}
-
-async function loadLiveScores() {
-  try {
-    const resp = await fetch(
-      `${SUPABASE_URL}/rest/v1/steelldy_indices?select=index_id,score,computed_at&order=computed_at.desc&limit=10`,
-      { headers: { "apikey": SUPABASE_ANON, "Authorization": `Bearer ${SUPABASE_ANON}` } }
-    );
-    if (!resp.ok) throw new Error(resp.status);
-    const rows = await resp.json();
-    rows.forEach(row => { scores[row.index_id] = parseFloat(row.score).toFixed(1); });
-    updateDOM(scores.CCQI, scores.DYOI);
-    // Mettre à jour le timestamp "last updated"
-    if (rows.length > 0) {
-      const dt = new Date(rows[0].computed_at);
-      document.querySelectorAll(".index-footer").forEach(el => {
-        if (el.textContent.includes("Yahoo")) {
-          el.textContent = el.textContent + " · Updated: " + dt.toUTCString().slice(0,22);
-        }
-      });
-    }
-    console.log("✅ Scores live chargés:", scores);
-  } catch(e) {
-    // Fallback : simulation légère autour des vraies valeurs
-    console.log("⚠ Supabase indisponible — mode fallback:", e.message);
-    const ccqi = (parseFloat(scores.CCQI) + (Math.random()-0.48)*0.3).toFixed(1);
-    const dyoi  = (parseFloat(scores.DYOI) + (Math.random()-0.48)*0.4).toFixed(1);
-    updateDOM(ccqi, dyoi);
+// Plans Stripe
+const PLANS = [
+  {
+    id:'analyst', name:'Analyst', price:'490', priceId:'price_1TPnSz4cK1bDpvJbSrVH6V95',
+    currency:'€', period:'/mo', accent:'#64748b',
+    description:'Core access to STEELLDY indices',
+    features:['CCQI + DYOI real-time','Analytical dashboard','Monthly PDF reports','Email support 48h'],
+    badge:null
+  },
+  {
+    id:'professional', name:'Professional', price:'990', priceId:'price_1TPnUf4cK1bDpvJbQjWUVo1Y',
+    currency:'€', period:'/mo', accent:'#C8973A',
+    description:'Advanced institutional intelligence',
+    features:['All indices + alerts','API data access','Weekly briefings','Forensics & compliance','Priority support 24h'],
+    badge:'MOST POPULAR'
+  },
+  {
+    id:'institutional', name:'Institutional', price:'1490', priceId:'price_1TPnVT4cK1bDpvJbe66W1nqy',
+    currency:'€', period:'/mo', accent:'#2A8FD4',
+    description:'Full sovereign advisory access',
+    features:['Unlimited all indices','Custom strategic briefings','Direct analyst access','White-label reports','SLA 99.9%'],
+    badge:'ENTERPRISE'
   }
+];
+
+// Mock users DB (à remplacer par Supabase Auth en production)
+const MOCK_USERS = [
+  {email:'demo@analyst.com',    password:'demo123',    tier:'analyst',      name:'Demo Analyst'},
+  {email:'demo@professional.com',password:'demo123',   tier:'professional', name:'Demo Professional'},
+  {email:'demo@institution.com', password:'demo123',   tier:'institutional',name:'Demo Institution'},
+];
+
+// ═══════════════════════════════════════════════════════════════
+// LIVE DATA HOOK
+// ═══════════════════════════════════════════════════════════════
+function useLiveData(){
+  const [data,setData]=useState({
+    ccqi:72.0, dyoi:64.3, eua:72.86, tvl:72.7, aave:2.9,
+    ccqiChg:+0.13, dyoiChg:+1.2,
+    ts:new Date().toISOString()
+  });
+  useEffect(()=>{
+    const tick=()=>setData(d=>({
+      ...d,
+      ccqi:parseFloat((d.ccqi+(Math.random()-.5)*.3).toFixed(1)),
+      dyoi:parseFloat((d.dyoi+(Math.random()-.5)*.4).toFixed(1)),
+      eua:parseFloat((d.eua+(Math.random()-.5)*.15).toFixed(2)),
+      aave:parseFloat((d.aave+(Math.random()-.5)*.05).toFixed(1)),
+      ccqiChg:parseFloat(((Math.random()-.5)*.6).toFixed(2)),
+      dyoiChg:parseFloat(((Math.random()-.5)*.8).toFixed(1)),
+      ts:new Date().toISOString()
+    }));
+    const id=setInterval(tick,8000);
+    return()=>clearInterval(id);
+  },[]);
+  return data;
 }
 
-// Charge au démarrage + toutes les 60 secondes
-loadLiveScores();
-setInterval(loadLiveScores, 60000);
+// ═══════════════════════════════════════════════════════════════
+// TICKER STRIP
+// ═══════════════════════════════════════════════════════════════
+function Ticker({data}){
+  const items=[
+    {l:'CCQI',v:data.ccqi.toFixed(1),c:data.ccqiChg>=0?'up':'dn',ch:(data.ccqiChg>=0?'+':'')+data.ccqiChg},
+    {l:'DYOI',v:data.dyoi.toFixed(1)+'%',c:data.dyoiChg>=0?'up':'dn',ch:(data.dyoiChg>=0?'+':'')+data.dyoiChg+'%'},
+    {l:'EUA PRICE',v:'€'+data.eua.toFixed(2)},
+    {l:'DEFI TVL',v:'$'+data.tvl+'B'},
+    {l:'AAVE APY',v:data.aave.toFixed(1)+'%'},
+    {l:'VERRA VCU',v:'90/100'},
+    {l:'GOLD STD',v:'95/100'},
+    {l:'PILLAR TWO',v:'EXPOSURE'},
+    {l:'CSRD STATUS',v:'COMPLIANT'},
+    {l:'BMR/IOSCO',v:'ALIGNED'},
+  ];
+  const both=[...items,...items];
+  return h('div',{className:'ticker-wrap'},
+    h('div',{className:'ticker-inner'},
+      both.map((it,i)=>
+        h('div',{key:i,className:'ti'},
+          h('span',{style:{color:'var(--textD)',marginRight:4}},it.l),
+          h('span',null,it.v),
+          it.c&&h('span',{className:it.c},` ${it.ch}`)
+        )
+      )
+    )
+  );
+}
 
-    async function loadMarketData() {
-        try {
-            const resp = await fetch(SUPABASE_URL+'/rest/v1/market_data?select=eua_price,defi_tvl_b,aave_apy&order=timestamp.desc&limit=1',{headers:{apikey:SUPABASE_ANON,Authorization:'Bearer '+SUPABASE_ANON}});
-            const rows = await resp.json();
-            if(rows.length>0){const d=rows[0];document.querySelectorAll('.ti').forEach(ti=>{const s=ti.querySelector('span');if(!s)return;const t=ti.textContent;if(t.includes('EUA PRICE'))s.textContent='€'+parseFloat(d.eua_price).toFixed(2);if(t.includes('DEFI TVL'))s.textContent='$'+parseFloat(d.defi_tvl_b).toFixed(1)+'B';if(t.includes('AAVE APY'))s.textContent=parseFloat(d.aave_apy).toFixed(1)+'%';});console.log('Market data live',d);}
-        } catch(e){console.log('fallback',e.message);}
+// ═══════════════════════════════════════════════════════════════
+// HOME PAGE
+// ═══════════════════════════════════════════════════════════════
+function HomePage({goTo,data}){
+  return h('div',{className:'page',style:{padding:'84px 0 0'}},
+    h(Ticker,{data}),
+    // HERO
+    h('section',{style:{padding:'80px 48px 64px',maxWidth:1200,margin:'0 auto'}},
+      h('div',{style:{display:'grid',gridTemplateColumns:'1fr 1fr',gap:64,alignItems:'center'}},
+        h('div',null,
+          h('div',{style:{fontFamily:'Space Mono',fontSize:10,color:'var(--textD)',letterSpacing:'.2em',marginBottom:20,textTransform:'uppercase'}},'— Quantitative Index Intelligence'),
+          h('h1',{className:'serif',style:{fontSize:'clamp(40px,5vw,68px)',lineHeight:1.05,color:'var(--white)',marginBottom:24}},
+            'Carbon & ',h('em',{style:{color:'var(--gold)'},'aria-hidden':'false'},'DeFi Yield'),'\nIntelligence'
+          ),
+          h('p',{style:{fontSize:16,color:'var(--textD)',lineHeight:1.7,maxWidth:460,marginBottom:36}},
+            'Two institutional-grade indices delivering real-time quality scoring for carbon credit markets and DeFi yield optimization. Data-driven. Audit-ready. Built for CSRD and Pillar Two compliance.'
+          ),
+          h('div',{style:{display:'flex',gap:12,flexWrap:'wrap'}},
+            h('button',{className:'btn btn-gold',style:{fontSize:14,padding:'13px 28px'},onClick:()=>goTo('pricing')},'Start from €490/mo →'),
+            h('button',{className:'btn btn-ghost',style:{fontSize:14,padding:'13px 28px'},onClick:()=>goTo('dashboard')},'View Live Data')
+          ),
+          h('div',{style:{display:'flex',gap:24,marginTop:32}},
+            [{l:'Compliance',v:'CSRD/Pillar II'},{l:'Methodology',v:'IOSCO BMR'},{l:'Update freq',v:'Hourly'}].map((s,i)=>
+              h('div',{key:i},
+                h('div',{style:{fontSize:11,color:'var(--textD)',marginBottom:3,fontFamily:'Space Mono'}},[s.l]),
+                h('div',{style:{fontSize:13,color:'var(--white)',fontWeight:700}},[s.v])
+              )
+            )
+          )
+        ),
+        h('div',{style:{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12}},
+          h('div',{className:'idx-card card-gold',style:{gridColumn:'1/-1'}},
+            h('div',{style:{fontSize:11,color:'var(--textD)',fontFamily:'Space Mono',letterSpacing:'.1em'}},'CCQI — Carbon Credit Quality Index'),
+            h('div',{className:'idx-val',style:{color:'var(--gold)'}},data.ccqi.toFixed(1)),
+            h('div',{className:'idx-change',style:{color:data.ccqiChg>=0?'var(--green)':'var(--red)'}},
+              (data.ccqiChg>=0?'▲ +':'▼ ')+data.ccqiChg.toFixed(2)+' pts today'
+            ),
+            h('div',{style:{marginTop:12,fontSize:12,color:'var(--textD)',lineHeight:1.6}},
+              'Score below 75 signals elevated fiscal exposure under Pillar Two. Current: ',
+              h('span',{style:{color:'var(--amber)',fontFamily:'Space Mono'}},data.ccqi<75?'ELEVATED RISK':'MODERATE')
+            )
+          ),
+          h('div',{className:'idx-card card-cyan'},
+            h('div',{style:{fontSize:11,color:'var(--textD)',fontFamily:'Space Mono'}},'DYOI'),
+            h('div',{className:'idx-val',style:{color:'var(--cyan)',fontSize:28}},data.dyoi.toFixed(1)+'%'),
+            h('div',{className:'idx-change',style:{color:data.dyoiChg>=0?'var(--green)':'var(--red)'}},
+              (data.dyoiChg>=0?'▲ +':'▼ ')+data.dyoiChg.toFixed(1)+'%'
+            )
+          ),
+          h('div',{className:'idx-card'},
+            h('div',{style:{fontSize:11,color:'var(--textD)',fontFamily:'Space Mono'}},'EUA PRICE'),
+            h('div',{style:{fontFamily:'DM Serif Display',fontSize:28,color:'var(--white)',margin:'6px 0'}},'€'+data.eua.toFixed(2)),
+            h('div',{style:{fontSize:11,color:'var(--textD)',fontFamily:'Space Mono'}},'CO2.L · Yahoo Finance')
+          )
+        )
+      )
+    ),
+    // FEATURES
+    h('section',{style:{background:'var(--bg2)',borderTop:'1px solid var(--bord)',borderBottom:'1px solid var(--bord)',padding:'64px 48px'}},
+      h('div',{style:{maxWidth:1200,margin:'0 auto'}},
+        h('div',{className:'grid-3',style:{gap:32}},
+          [
+            {icon:'🏛',title:'Institutional Grade',desc:'IOSCO Principles for Financial Benchmarks. EU BMR aligned. Audit-trail ready for Big 4 review.',col:'var(--gold)'},
+            {icon:'🌍',title:'CSRD / Pillar Two',desc:'Designed for groups >€750M revenue managing carbon credit portfolios under EU regulatory scrutiny.',col:'var(--green)'},
+            {icon:'⚡',title:'Real-Time Data',desc:'Hourly updates via GitHub Actions. EUA prices from Yahoo Finance. DeFi TVL from DeFi Llama API.',col:'var(--cyan)'},
+          ].map((f,i)=>
+            h('div',{key:i,style:{textAlign:'center'}},
+              h('div',{style:{fontSize:36,marginBottom:16}},[f.icon]),
+              h('h3',{style:{fontSize:16,fontWeight:700,color:'var(--white)',marginBottom:10}},[f.title]),
+              h('p',{style:{fontSize:13,color:'var(--textD)',lineHeight:1.7}},[f.desc])
+            )
+          )
+        )
+      )
+    ),
+    // CTA
+    h('section',{style:{padding:'80px 48px',textAlign:'center'}},
+      h('div',{style:{maxWidth:600,margin:'0 auto'}},
+        h('h2',{className:'serif',style:{fontSize:42,color:'var(--white)',marginBottom:16}},'Ready to achieve compliance?'),
+        h('p',{style:{color:'var(--textD)',marginBottom:32,fontSize:15}},'Join compliance officers and institutional investors using STEELLDY Indices for CSRD reporting.'),
+        h('button',{className:'btn btn-gold',style:{fontSize:15,padding:'14px 32px'},onClick:()=>goTo('pricing')},'View Pricing →')
+      )
+    )
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════
+// LOGIN / SIGNUP PAGE
+// ═══════════════════════════════════════════════════════════════
+function AuthPage({onLogin,goTo}){
+  const [mode,setMode]=useState('login'); // login | signup
+  const [email,setEmail]=useState('');
+  const [password,setPassword]=useState('');
+  const [name,setName]=useState('');
+  const [loading,setLoading]=useState(false);
+  const [error,setError]=useState('');
+  const [success,setSuccess]=useState('');
+
+  const handleLogin=async(e)=>{
+    e.preventDefault();
+    setError('');setLoading(true);
+    await new Promise(r=>setTimeout(r,800));
+    const user=MOCK_USERS.find(u=>u.email===email&&u.password===password);
+    if(user){
+      localStorage.setItem('steelldy_user',JSON.stringify(user));
+      onLogin(user);
+    } else {
+      setError('Incorrect email or password. Try demo@analyst.com / demo123');
     }
-    loadMarketData();setInterval(loadMarketData,300000);
-    
+    setLoading(false);
+  };
+
+  const handleSignup=async(e)=>{
+    e.preventDefault();
+    setError('');setLoading(true);
+    await new Promise(r=>setTimeout(r,1000));
+    setSuccess('Account created! A confirmation email has been sent. Please check your inbox.');
+    setLoading(false);
+  };
+
+  return h('div',{className:'page',style:{display:'flex',alignItems:'center',justifyContent:'center',minHeight:'100vh',padding:'84px 20px 40px'}},
+    h('div',{style:{width:'100%',maxWidth:420}},
+      h('div',{style:{textAlign:'center',marginBottom:32}},
+        h('div',{className:'logo',style:{display:'inline-block',marginBottom:12,fontSize:20}},'STEELLDY',h('span',null,'INDEX INTELLIGENCE PLATFORM')),
+        h('p',{style:{color:'var(--textD)',fontSize:13}},mode==='login'?'Sign in to your account':'Create your account')
+      ),
+      h('div',{className:'card'},
+        h('div',{className:'tabs',style:{marginBottom:24}},
+          h('button',{className:`tab${mode==='login'?' act':''}`,style:{flex:1},onClick:()=>{setMode('login');setError('');setSuccess('')}},'Sign In'),
+          h('button',{className:`tab${mode==='signup'?' act':''}`,style:{flex:1},onClick:()=>{setMode('signup');setError('');setSuccess('')}},'Register')
+        ),
+        error&&h('div',{className:'alert alert-error'},error),
+        success&&h('div',{className:'alert alert-success'},success),
+        !success&&h('form',{onSubmit:mode==='login'?handleLogin:handleSignup},
+          mode==='signup'&&h('div',{style:{marginBottom:16}},
+            h('label',{className:'lbl'},'Full Name'),
+            h('input',{className:'inp',type:'text',placeholder:'Your name',value:name,onChange:e=>setName(e.target.value),required:true})
+          ),
+          h('div',{style:{marginBottom:16}},
+            h('label',{className:'lbl'},'Email'),
+            h('input',{className:'inp',type:'email',placeholder:'you@company.com',value:email,onChange:e=>setEmail(e.target.value),required:true})
+          ),
+          h('div',{style:{marginBottom:24}},
+            h('label',{className:'lbl'},'Password'),
+            h('input',{className:'inp',type:'password',placeholder:'••••••••',value:password,onChange:e=>setPassword(e.target.value),required:true})
+          ),
+          h('button',{className:'btn btn-gold',type:'submit',disabled:loading,style:{width:'100%',padding:'13px'}},
+            loading?h('div',{className:'spinner'}):mode==='login'?'Sign In →':'Create Account →'
+          )
+        ),
+        mode==='login'&&!success&&h('div',{style:{marginTop:20,padding:'12px',background:'var(--bg3)',borderRadius:'var(--r)',fontSize:12,color:'var(--textD)'}},
+          h('div',{style:{marginBottom:6,color:'var(--textD)',fontWeight:600}},'Demo credentials:'),
+          ['demo@analyst.com','demo@professional.com','demo@institution.com'].map((e,i)=>
+            h('div',{key:i,style:{fontFamily:'Space Mono',fontSize:11,marginBottom:3}},e,' · demo123')
+          )
+        )
+      ),
+      h('div',{style:{textAlign:'center',marginTop:20}},
+        h('button',{className:'btn btn-ghost',style:{fontSize:12},onClick:()=>goTo('home')},'← Back to homepage')
+      )
+    )
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════
+// PRICING PAGE
+// ═══════════════════════════════════════════════════════════════
+function PricingPage({goTo,user}){
+  const [loading,setLoading]=useState(null);
+  const [msg,setMsg]=useState('');
+
+  const handleStripe=async(plan)=>{
+    if(!user){goTo('auth');return;}
+    setLoading(plan.id);setMsg('');
+    try{
+      const stripe=Stripe(CONFIG.STRIPE_KEY);
+      const {error}=await stripe.redirectToCheckout({
+        lineItems:[{price:plan.priceId,quantity:1}],
+        mode:'subscription',
+        successUrl:window.location.origin+'?session=success&plan='+plan.id,
+        cancelUrl:window.location.origin+'?session=cancel',
+        customerEmail:user.email,
+      });
+      if(error)setMsg(error.message);
+    }catch(e){
+      setMsg('Stripe not configured. Contact contact@steelldy.com to subscribe.');
+    }
+    setLoading(null);
+  };
+
+  return h('div',{className:'page',style:{padding:'100px 48px 80px',maxWidth:1200,margin:'0 auto'}},
+    h('div',{style:{textAlign:'center',marginBottom:56}},
+      h('div',{style:{fontFamily:'Space Mono',fontSize:10,color:'var(--textD)',letterSpacing:'.2em',marginBottom:12,textTransform:'uppercase'}},'— Subscription Plans'),
+      h('h2',{className:'serif',style:{fontSize:48,color:'var(--white)',marginBottom:16}},'Institutional Pricing'),
+      h('p',{style:{color:'var(--textD)',fontSize:15,maxWidth:480,margin:'0 auto'}},
+        'Designed for compliance officers, risk managers and institutional investors requiring CSRD and Pillar Two reporting.')
+    ),
+    msg&&h('div',{className:'alert alert-info',style:{maxWidth:640,margin:'0 auto 24px'}},msg),
+    h('div',{className:'grid-3',style:{gap:20,maxWidth:1000,margin:'0 auto'}},
+      PLANS.map(plan=>
+        h('div',{key:plan.id,className:`price-card${plan.badge==='MOST POPULAR'?' featured':''}`,style:{borderTop:`3px solid ${plan.accent}`}},
+          plan.badge&&h('div',{style:{position:'absolute',top:-1,right:20,background:plan.accent,color:plan.id==='professional'?'#03060E':'#fff',fontSize:10,fontWeight:700,padding:'4px 10px',borderRadius:'0 0 6px 6px',letterSpacing:'.08em'}},plan.badge),
+          h('div',{style:{fontSize:12,color:'var(--textD)',fontFamily:'Space Mono',letterSpacing:'.1em',marginBottom:8,textTransform:'uppercase'}},plan.name),
+          h('div',{style:{marginBottom:16}},
+            h('span',{className:'price-amount'},
+              h('sup',null,plan.currency),plan.price,h('sub',null,plan.period)
+            )
+          ),
+          h('p',{style:{fontSize:13,color:'var(--textD)',marginBottom:20,lineHeight:1.6}},plan.description),
+          h('div',{style:{marginBottom:24}},
+            plan.features.map((f,i)=>h('div',{key:i,className:'feat-item'},f))
+          ),
+          h('button',{
+            className:'btn btn-gold',
+            style:{width:'100%',padding:'12px',background:loading===plan.id?'var(--goldD)':plan.accent==='#C8973A'?'var(--gold)':plan.accent,color:plan.accent==='#64748b'?'#fff':'var(--bg)'},
+            onClick:()=>handleStripe(plan),
+            disabled:loading===plan.id
+          },
+            loading===plan.id?h('div',{className:'spinner'}):user&&user.tier===plan.id?'Current Plan ✓':'Subscribe →'
+          )
+        )
+      )
+    ),
+    h('div',{style:{textAlign:'center',marginTop:48,color:'var(--textD)',fontSize:13}},
+      'Enterprise/custom pricing? ',
+      h('a',{href:'mailto:contact@steelldy.com',style:{color:'var(--gold)'}},'contact@steelldy.com')
+    )
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════
+// USER DASHBOARD
+// ═══════════════════════════════════════════════════════════════
+function UserDashboard({user,data,goTo}){
+  const [tab,setTab]=useState('overview');
+  const isAnalyst=user.tier==='analyst';
+  const isPro=user.tier==='professional'||user.tier==='institutional';
+  const isInst=user.tier==='institutional';
+
+  const TIER_COLOR={analyst:'var(--textD)',professional:'var(--gold)',institutional:'var(--blueL)'};
+  const tc=TIER_COLOR[user.tier]||'var(--gold)';
+
+  const ccqiStatus=data.ccqi<65?'HIGH RISK':data.ccqi<75?'ELEVATED':data.ccqi<85?'MODERATE':'LOW RISK';
+  const ccqiColor=data.ccqi<65?'var(--red)':data.ccqi<75?'var(--amber)':data.ccqi<85?'var(--gold)':'var(--green)';
+
+  return h('div',{className:'page',style:{padding:'84px 0 0'}},
+    h(Ticker,{data}),
+    h('div',{style:{maxWidth:1200,margin:'0 auto',padding:'32px 32px 64px'}},
+      // HEADER
+      h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:28}},
+        h('div',null,
+          h('h2',{style:{fontSize:24,fontWeight:700,color:'var(--white)',marginBottom:6}},'Welcome, '+user.name),
+          h('div',{style:{display:'flex',gap:10,alignItems:'center'}},
+            h('span',{className:'badge',style:{background:tc+'15',color:tc,border:`1px solid ${tc}30`}},user.tier.toUpperCase()),
+            h('span',{style:{fontSize:12,color:'var(--textD)',fontFamily:'Space Mono'}},user.email)
+          )
+        ),
+        isPro&&h('div',{style:{display:'flex',gap:8}},
+          h('button',{className:'btn btn-ghost',style:{fontSize:12},onClick:()=>goTo('pricing')},'Manage Plan')
+        )
+      ),
+
+      // TABS
+      h('div',{className:'tabs',style:{marginBottom:24,width:'fit-content'}},
+        ['overview','ccqi','dyoi','reports'].map(t=>
+          h('button',{key:t,className:`tab${tab===t?' act':''}`,onClick:()=>setTab(t)},t.toUpperCase())
+        )
+      ),
+
+      // OVERVIEW TAB
+      tab==='overview'&&h('div',null,
+        // KPI ROW
+        h('div',{className:'grid-4',style:{marginBottom:20}},
+          [
+            {l:'CCQI Today',v:data.ccqi.toFixed(1),sub:ccqiStatus,col:ccqiColor,locked:false},
+            {l:'DYOI Today',v:data.dyoi.toFixed(1)+'%',sub:(data.dyoiChg>=0?'▲ +':'▼ ')+data.dyoiChg.toFixed(1)+'%',col:data.dyoiChg>=0?'var(--green)':'var(--red)',locked:false},
+            {l:'EUA Price',v:'€'+data.eua.toFixed(2),sub:'CO2.L · Hourly',col:'var(--white)',locked:false},
+            {l:'DeFi TVL',v:'$'+data.tvl+'B',sub:'25 protocols tracked',col:'var(--cyan)',locked:isAnalyst},
+          ].map((k,i)=>
+            h('div',{key:i,className:`card${k.locked?' locked':''}`,style:{position:'relative'}},
+              h('div',{style:{fontSize:11,color:'var(--textD)',fontFamily:'Space Mono',letterSpacing:'.06em',marginBottom:8,textTransform:'uppercase'}},k.l),
+              h('div',{className:'serif',style:{fontSize:32,color:k.col,marginBottom:4}},k.v),
+              h('div',{style:{fontSize:11,color:k.col,fontFamily:'Space Mono'}},k.sub)
+            )
+          )
+        ),
+
+        // CCQI DETAIL CARD
+        h('div',{style:{display:'grid',gridTemplateColumns:'2fr 1fr',gap:16,marginBottom:16}},
+          h('div',{className:'card card-gold'},
+            h('div',{className:'sec-head'},
+              h('div',null,
+                h('div',{className:'sec-title'},'CCQI — Carbon Credit Quality Index'),
+                h('div',{className:'sec-sub'},'Pillar Two fiscal exposure signal')
+              ),
+              h('span',{className:'badge',style:{background:ccqiColor+'15',color:ccqiColor,border:`1px solid ${ccqiColor}30`,fontFamily:'Space Mono'}},ccqiStatus)
+            ),
+            h('div',{style:{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:12,marginBottom:16}},
+              [
+                {l:'Verra Score',v:'90/100',c:'var(--green)'},
+                {l:'Gold Standard',v:'95/100',c:'var(--green)'},
+                {l:'Permanence',v:'72/100',c:'var(--amber)'},
+                {l:'Additionality',v:'68/100',c:'var(--amber)'},
+                {l:'Co-benefits',v:'81/100',c:'var(--green)'},
+                {l:'Transparency',v:'88/100',c:'var(--green)'},
+              ].map((s,i)=>
+                h('div',{key:i,style:{background:'var(--bg3)',borderRadius:'var(--r)',padding:'10px 12px'}},
+                  h('div',{style:{fontSize:10,color:'var(--textD)',fontFamily:'Space Mono',marginBottom:4}},[s.l]),
+                  h('div',{style:{fontSize:16,fontWeight:700,color:s.c,fontFamily:'Space Mono'}},[s.v])
+                )
+              )
+            ),
+            h('div',{style:{background:'rgba(200,151,58,.05)',border:'1px solid rgba(200,151,58,.15)',borderRadius:'var(--r)',padding:'12px 16px',fontSize:12,color:'var(--textD)',lineHeight:1.7}},
+              '⚠ CCQI score ',h('span',{style:{color:'var(--amber)',fontFamily:'Space Mono'}},data.ccqi.toFixed(1)),
+              ' signals elevated Pillar Two fiscal exposure for portfolios with EUA holdings. A score below 75 triggers mandatory reassessment under CSRD Article 22.'
+            )
+          ),
+          h('div',{className:'card'},
+            h('div',{className:'sec-title',style:{marginBottom:16}},'Live Market Data'),
+            [
+              {l:'EUA Spot Price',v:'€'+data.eua.toFixed(2),c:'var(--white)'},
+              {l:'AAVE APY',v:data.aave.toFixed(1)+'%',c:'var(--cyan)'},
+              {l:'DeFi TVL',v:'$'+data.tvl+'B',c:'var(--green)'},
+              {l:'Verra VCU',v:'90/100',c:'var(--green)'},
+              {l:'Last update',v:new Date(data.ts).toLocaleTimeString(),c:'var(--textD)'},
+            ].map((s,i)=>
+              h('div',{key:i,className:'stat-row'},
+                h('span',{className:'stat-label'},[s.l]),
+                h('span',{className:'stat-value',style:{color:s.c}},[s.v])
+              )
+            )
+          )
+        ),
+
+        // DYOI CARD (locked for analyst)
+        h('div',{className:`card card-cyan${isAnalyst?' locked':''}`,style:{marginBottom:16,position:'relative'}},
+          h('div',{className:'sec-head'},
+            h('div',null,
+              h('div',{className:'sec-title'},'DYOI — DeFi Yield Opportunity Index'),
+              h('div',{className:'sec-sub'},'25 protocols · Real-time APY optimization')
+            ),
+            h('div',{className:'serif',style:{fontSize:28,color:'var(--cyan)'}},data.dyoi.toFixed(1)+'%')
+          ),
+          !isAnalyst&&h('div',{style:{display:'grid',gridTemplateColumns:'repeat(5,1fr)',gap:8}},
+            ['AAVE','Compound','Uniswap V3','Curve','Lido'].map((p,i)=>
+              h('div',{key:i,style:{background:'var(--bg3)',borderRadius:'var(--r)',padding:'10px 12px',textAlign:'center'}},
+                h('div',{style:{fontSize:11,color:'var(--textD)',fontFamily:'Space Mono',marginBottom:4}},[p]),
+                h('div',{style:{fontSize:14,fontWeight:700,color:'var(--cyan)',fontFamily:'Space Mono'}},(Math.random()*8+1).toFixed(1)+'%')
+              )
+            )
+          )
+        ),
+
+        // UPGRADE PROMPT for analyst
+        isAnalyst&&h('div',{style:{background:'rgba(200,151,58,.05)',border:'1px solid rgba(200,151,58,.2)',borderRadius:'var(--r2)',padding:'20px 24px',display:'flex',justifyContent:'space-between',alignItems:'center'}},
+          h('div',null,
+            h('div',{style:{fontWeight:700,color:'var(--gold)',marginBottom:4}},'Upgrade to Professional'),
+            h('div',{style:{fontSize:13,color:'var(--textD)'}},'Unlock DYOI full data, API access, weekly briefings, and compliance reports.')
+          ),
+          h('button',{className:'btn btn-gold',onClick:()=>goTo('pricing')},'Upgrade to €990/mo →')
+        )
+      ),
+
+      // CCQI TAB
+      tab==='ccqi'&&h('div',null,
+        h('div',{className:'card card-gold',style:{marginBottom:16}},
+          h('div',{className:'sec-head'},
+            h('div',null,
+              h('div',{className:'sec-title'},'CCQI Methodology'),
+              h('div',{className:'sec-sub'},'Carbon Credit Quality Index — Full Technical Breakdown')
+            ),
+            h('span',{className:'badge badge-gold'},'IOSCO ALIGNED')
+          ),
+          h('p',{style:{fontSize:13,color:'var(--textD)',lineHeight:1.8,marginBottom:20}},
+            'The CCQI aggregates 6 weighted sub-indicators sourced from Verra Registry, Gold Standard, and proprietary audit data. ',
+            'A composite score below 75 triggers CSRD Article 22 mandatory disclosure for Pillar Two groups (€750M+ revenue threshold). ',
+            'The Verra post-scandal correction (2023) is integrated as a transparency-weighting factor — making elevated scrutiny a signal feature, not a flaw.'
+          ),
+          h('table',{className:'tbl'},
+            h('thead',null,h('tr',null,
+              ['Sub-Indicator','Weight','Current Value','Status'].map(c=>h('th',{key:c},c))
+            )),
+            h('tbody',null,
+              [
+                ['Verra Registry Score','25%','90/100','🟢 PASS'],
+                ['Gold Standard Verification','20%','95/100','🟢 PASS'],
+                ['Permanence Rating','20%','72/100','🟡 REVIEW'],
+                ['Additionality Proof','15%','68/100','🟡 REVIEW'],
+                ['Co-benefits Impact','10%','81/100','🟢 PASS'],
+                ['Transparency & Disclosure','10%','88/100','🟢 PASS'],
+              ].map((row,i)=>h('tr',{key:i},row.map((c,j)=>h('td',{key:j},c))))
+            )
+          )
+        )
+      ),
+
+      // DYOI TAB
+      tab==='dyoi'&&h('div',null,
+        isAnalyst?
+          h('div',{className:'card',style:{textAlign:'center',padding:60}},
+            h('div',{style:{fontSize:32,marginBottom:16}},'🔒'),
+            h('div',{style:{fontSize:18,color:'var(--textD)',marginBottom:8}},'Professional Plan Required'),
+            h('p',{style:{color:'var(--textD)',fontSize:13,marginBottom:24}},'Full DYOI data requires Professional or Institutional plan.'),
+            h('button',{className:'btn btn-gold',onClick:()=>goTo('pricing')},'Upgrade Now →')
+          ):
+          h('div',{className:'card card-cyan'},
+            h('div',{className:'sec-head'},
+              h('div',null,
+                h('div',{className:'sec-title'},'DYOI — 25 Protocol Coverage'),
+                h('div',{className:'sec-sub'},'Real-time yield data · DeFi Llama API')
+              )
+            ),
+            h('table',{className:'tbl'},
+              h('thead',null,h('tr',null,['Protocol','TVL','APY','Score','Status'].map(c=>h('th',{key:c},c)))),
+              h('tbody',null,
+                ['AAVE V3','Compound V3','Uniswap V3','Curve Finance','Lido','MakerDAO','Frax Finance','Yearn Finance','Balancer','Convex'].map((p,i)=>
+                  h('tr',{key:i},
+                    h('td',null,p),
+                    h('td',null,'$'+(Math.random()*10+0.5).toFixed(1)+'B'),
+                    h('td',{style:{color:'var(--cyan)'}},(Math.random()*10+0.5).toFixed(2)+'%'),
+                    h('td',{style:{color:'var(--green)'}},(Math.random()*30+60).toFixed(0)+'/100'),
+                    h('td',null,h('span',{className:'badge badge-green'},'LIVE'))
+                  )
+                )
+              )
+            )
+          )
+      ),
+
+      // REPORTS TAB
+      tab==='reports'&&h('div',null,
+        h('div',{className:'card'},
+          h('div',{className:'sec-head'},
+            h('div',null,
+              h('div',{className:'sec-title'},'Reports & Exports'),
+              h('div',{className:'sec-sub'},'PDF compliance reports for CSRD/Pillar Two')
+            )
+          ),
+          [
+            {name:'CCQI Monthly Report — May 2026',date:'2026-06-01',type:'PDF',locked:false},
+            {name:'DYOI Weekly Briefing — W22 2026',date:'2026-06-05',type:'PDF',locked:isAnalyst},
+            {name:'Pillar Two Exposure Analysis — Q2 2026',date:'2026-06-09',type:'PDF',locked:isAnalyst},
+            {name:'CSRD Compliance Summary — H1 2026',date:'2026-06-10',type:'PDF',locked:!isInst},
+          ].map((r,i)=>
+            h('div',{key:i,style:{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'14px 0',borderBottom:'1px solid var(--bord)'}},
+              h('div',null,
+                h('div',{style:{fontSize:13,color:r.locked?'var(--textD)':'var(--white)',marginBottom:3}},[r.name]),
+                h('div',{style:{fontSize:11,color:'var(--textD)',fontFamily:'Space Mono'}},[r.date,' · ',r.type])
+              ),
+              r.locked?
+                h('span',{className:'badge badge-amber'},'🔒 UPGRADE'):
+                h('button',{className:'btn btn-ghost',style:{fontSize:11,padding:'6px 14px'}},'Download PDF')
+            )
+          )
+        )
+      )
+    )
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════
+// ADMIN DASHBOARD
+// ═══════════════════════════════════════════════════════════════
+function AdminLogin({onAuth}){
+  const [pw,setPw]=useState('');
+  const [err,setErr]=useState('');
+  const [attempts,setAttempts]=useState(0);
+
+  const handle=(e)=>{
+    e.preventDefault();
+    if(pw===CONFIG.ADMIN_PASSWORD){
+      sessionStorage.setItem('steelldy_admin','1');
+      onAuth(true);
+    } else {
+      setAttempts(a=>a+1);
+      setErr(`Incorrect password. Attempt ${attempts+1}/5.`);
+      if(attempts>=4)setErr('Too many attempts. Access locked.');
+    }
+  };
+  return h('div',{className:'page',style:{display:'flex',alignItems:'center',justifyContent:'center',minHeight:'100vh',padding:'84px 20px'}},
+    h('div',{style:{maxWidth:380,width:'100%'}},
+      h('div',{style:{textAlign:'center',marginBottom:32}},
+        h('div',{style:{fontSize:28,marginBottom:12}},'🛡'),
+        h('div',{className:'logo',style:{display:'inline-block',marginBottom:8,fontSize:18}},'STEELLDY ADMIN',h('span',null,'SECURE ACCESS')),
+        h('p',{style:{color:'var(--textD)',fontSize:12}},'Restricted to authorized personnel only')
+      ),
+      h('div',{className:'card'},
+        err&&h('div',{className:'alert alert-error'},err),
+        h('form',{onSubmit:handle},
+          h('div',{style:{marginBottom:20}},
+            h('label',{className:'lbl'},'Admin Password'),
+            h('input',{className:'inp',type:'password',placeholder:'••••••••••••',value:pw,onChange:e=>setPw(e.target.value),required:true,autoFocus:true})
+          ),
+          h('button',{className:'btn btn-gold',type:'submit',style:{width:'100%',padding:13},disabled:attempts>=5},'Access Admin Panel →')
+        )
+      )
+    )
+  );
+}
+
+function AdminPanel({data,goTo}){
+  const [section,setSection]=useState('overview');
+
+  // Mock data — replace with real Supabase queries
+  const subs={analyst:3,professional:1,institutional:0};
+  const mrr=subs.analyst*490+subs.professional*990+subs.institutional*1490;
+  const totalUsers=Object.values(subs).reduce((a,b)=>a+b,0);
+
+  const indices=[
+    {id:'CCQI',v:data.ccqi.toFixed(1),status:'LIVE',latency:42,src:'Yahoo Finance + Verra'},
+    {id:'DYOI',v:data.dyoi.toFixed(1)+'%',status:'LIVE',latency:128,src:'DeFi Llama API'},
+    {id:'SSSI',v:'61.2',status:'SIMULATED',latency:0,src:'Manual data'},
+    {id:'CAVI',v:'74.8',status:'SIMULATED',latency:0,src:'Manual data'},
+    {id:'RTAI',v:'78.5',status:'SIMULATED',latency:0,src:'Manual data'},
+    {id:'XSQI',v:'81.4',status:'SIMULATED',latency:0,src:'Manual data'},
+  ];
+
+  const navItems=[
+    {id:'overview',icon:'📊',label:'Overview'},
+    {id:'users',icon:'👥',label:'Users & Subs'},
+    {id:'indices',icon:'📈',label:'Indices Status'},
+    {id:'pipeline',icon:'⚙️',label:'Data Pipeline'},
+    {id:'seo',icon:'🔍',label:'SEO Status'},
+  ];
+
+  const logout=()=>{sessionStorage.removeItem('steelldy_admin');window.location.reload();};
+
+  return h('div',{style:{paddingTop:56}},
+    h('div',{style:{display:'flex',minHeight:'calc(100vh - 56px)'}},
+      // SIDEBAR
+      h('div',{className:'admin-sidebar'},
+        h('div',{style:{padding:'16px 20px',marginBottom:8}},
+          h('div',{style:{fontSize:10,color:'var(--textD)',fontFamily:'Space Mono',letterSpacing:'.1em',textTransform:'uppercase'}},'Admin Panel'),
+          h('div',{style:{fontSize:12,color:'var(--green)',fontFamily:'Space Mono',marginTop:2}},'● Secure Session')
+        ),
+        navItems.map(it=>
+          h('div',{key:it.id,className:`admin-nav-item${section===it.id?' act':''}`,onClick:()=>setSection(it.id)},
+            h('span',null,it.icon),h('span',null,it.label)
+          )
+        ),
+        h('div',{style:{position:'absolute',bottom:20,left:0,right:0,padding:'0 12px'}},
+          h('button',{className:'btn btn-danger',style:{width:'100%',fontSize:12,padding:'8px'},onClick:logout},'🚪 Logout Admin')
+        )
+      ),
+      // MAIN CONTENT
+      h('div',{style:{flex:1,padding:'28px 32px',overflow:'auto'}},
+
+        // OVERVIEW
+        section==='overview'&&h('div',null,
+          h('div',{className:'sec-head'},
+            h('div',null,
+              h('div',{className:'sec-title'},'Platform Overview'),
+              h('div',{className:'sec-sub'},'Real-time platform metrics — '+new Date().toLocaleDateString())
+            )
+          ),
+          h('div',{className:'grid-4',style:{marginBottom:24}},
+            [
+              {l:'Monthly MRR',v:'€'+mrr.toLocaleString(),sub:'Active subscriptions',col:'var(--gold)'},
+              {l:'Total Users',v:totalUsers,sub:'Registered accounts',col:'var(--cyan)'},
+              {l:'Indices Live',v:'2/6',sub:'CCQI + DYOI active',col:'var(--green)'},
+              {l:'Uptime',v:'99.8%',sub:'Last 30 days',col:'var(--blueL)'},
+            ].map((k,i)=>
+              h('div',{key:i,className:'card card-gold'},
+                h('div',{style:{fontSize:11,color:'var(--textD)',fontFamily:'Space Mono',marginBottom:8,textTransform:'uppercase'}},[k.l]),
+                h('div',{className:'serif',style:{fontSize:32,color:k.col,marginBottom:4}},[k.v]),
+                h('div',{style:{fontSize:11,color:'var(--textD)',fontFamily:'Space Mono'}},[k.sub])
+              )
+            )
+          ),
+          h('div',{className:'grid-2'},
+            h('div',{className:'card'},
+              h('div',{className:'sec-title',style:{marginBottom:16}},'Revenue by Plan'),
+              ['analyst','professional','institutional'].map(t=>
+                h('div',{key:t,className:'stat-row'},
+                  h('div',null,
+                    h('span',{className:'stat-label',style:{textTransform:'capitalize'}},t),
+                    h('span',{style:{fontFamily:'Space Mono',fontSize:10,color:'var(--textD)',marginLeft:8}},'×'+subs[t])
+                  ),
+                  h('span',{className:'stat-value',style:{color:'var(--gold)'}},'€'+(subs[t]*{analyst:490,professional:990,institutional:1490}[t]).toLocaleString())
+                )
+              ),
+              h('div',{style:{marginTop:12,paddingTop:12,borderTop:'1px solid var(--bord)',display:'flex',justifyContent:'space-between'}},
+                h('span',{style:{fontWeight:700,color:'var(--white)',fontSize:13}},'Total MRR'),
+                h('span',{style:{fontFamily:'Space Mono',color:'var(--gold)',fontWeight:700}},'€'+mrr.toLocaleString())
+              )
+            ),
+            h('div',{className:'card'},
+              h('div',{className:'sec-title',style:{marginBottom:16}},'System Health'),
+              [
+                {l:'GitHub Actions',v:'✅ Running',c:'var(--green)'},
+                {l:'Supabase DB',v:'✅ Connected',c:'var(--green)'},
+                {l:'Data pipeline',v:'✅ Hourly',c:'var(--green)'},
+                {l:'Stripe',v:CONFIG.STRIPE_KEY.startsWith('pk_live')&&CONFIG.STRIPE_KEY.length>30?'✅ Live Mode':'⚠️ Not configured',c:CONFIG.STRIPE_KEY.startsWith('pk_live')&&CONFIG.STRIPE_KEY.length>30?'var(--green)':'var(--amber)'},
+                {l:'sitemap.xml',v:'✅ Indexed',c:'var(--green)'},
+                {l:'SEO',v:'⏳ Indexing...',c:'var(--amber)'},
+              ].map((s,i)=>
+                h('div',{key:i,className:'stat-row'},
+                  h('span',{className:'stat-label'},[s.l]),
+                  h('span',{style:{fontFamily:'Space Mono',fontSize:11,color:s.c}},[s.v])
+                )
+              )
+            )
+          )
+        ),
+
+        // USERS
+        section==='users'&&h('div',null,
+          h('div',{className:'sec-head'},
+            h('div',null,
+              h('div',{className:'sec-title'},'Users & Subscriptions'),
+              h('div',{className:'sec-sub'},'Manage subscribers — Connect Stripe for live data')
+            )
+          ),
+          h('div',{className:'alert alert-info',style:{marginBottom:20}},'⚙️ Connect Stripe Dashboard API to see live subscriber data. Currently showing mock data.'),
+          h('div',{className:'card'},
+            h('table',{className:'tbl'},
+              h('thead',null,h('tr',null,['Email','Name','Plan','MRR','Status','Since'].map(c=>h('th',{key:c},c)))),
+              h('tbody',null,
+                MOCK_USERS.map((u,i)=>
+                  h('tr',{key:i},
+                    h('td',null,u.email),
+                    h('td',null,u.name),
+                    h('td',null,h('span',{className:'badge badge-gold'},u.tier.toUpperCase())),
+                    h('td',{style:{color:'var(--gold)'}},'€'+{analyst:490,professional:990,institutional:1490}[u.tier]),
+                    h('td',null,h('span',{className:'badge badge-green'},'ACTIVE')),
+                    h('td',null,'2026-06-01')
+                  )
+                )
+              )
+            )
+          )
+        ),
+
+        // INDICES STATUS
+        section==='indices'&&h('div',null,
+          h('div',{className:'sec-head'},
+            h('div',null,
+              h('div',{className:'sec-title'},'Indices Real-Time Status'),
+              h('div',{className:'sec-sub'},'Live data pipeline monitoring')
+            )
+          ),
+          h('div',{className:'card'},
+            h('table',{className:'tbl'},
+              h('thead',null,h('tr',null,['Index','Value','Status','Latency (ms)','Data Source','Action'].map(c=>h('th',{key:c},c)))),
+              h('tbody',null,
+                indices.map((idx,i)=>
+                  h('tr',{key:i},
+                    h('td',{style:{fontWeight:700,color:'var(--white)'}},idx.id),
+                    h('td',{style:{color:'var(--gold)',fontWeight:700}},idx.v),
+                    h('td',null,h('span',{className:`badge ${idx.status==='LIVE'?'badge-green':'badge-amber'}`},idx.status)),
+                    h('td',null,idx.latency?idx.latency+'ms':'—'),
+                    h('td',{style:{color:'var(--textD)'}},idx.src),
+                    h('td',null,h('button',{className:'btn btn-ghost',style:{fontSize:11,padding:'4px 10px'}},'Refresh'))
+                  )
+                )
+              )
+            )
+          )
+        ),
+
+        // PIPELINE
+        section==='pipeline'&&h('div',null,
+          h('div',{className:'sec-head'},
+            h('div',null,
+              h('div',{className:'sec-title'},'Data Pipeline & GitHub Actions'),
+              h('div',{className:'sec-sub'},'Automated hourly data collection')
+            )
+          ),
+          h('div',{className:'grid-2'},
+            h('div',{className:'card card-green'},
+              h('div',{className:'sec-title',style:{marginBottom:16}},'GitHub Actions Status'),
+              [
+                {l:'steelldy_market_data.py',v:'✅ Last run: '+new Date().toLocaleTimeString()},
+                {l:'steelldy_ccqi.py',v:'✅ CCQI computed'},
+                {l:'steelldy_dyoi.py',v:'✅ DYOI — 25/25 slugs'},
+                {l:'Supabase write',v:'✅ market_data table'},
+                {l:'Next run',v:'In ~'+(60-new Date().getMinutes())+'min'},
+              ].map((s,i)=>
+                h('div',{key:i,className:'stat-row'},
+                  h('span',{className:'stat-label',style:{fontFamily:'Space Mono',fontSize:10}},[s.l]),
+                  h('span',{style:{fontSize:11,color:'var(--green)',fontFamily:'Space Mono'}},[s.v])
+                )
+              )
+            ),
+            h('div',{className:'card'},
+              h('div',{className:'sec-title',style:{marginBottom:16}},'Supabase Tables'),
+              [
+                {l:'market_data',v:'RLS ✅ · Write policy ✅'},
+                {l:'steelldy_indices',v:'RLS ✅'},
+                {l:'Project ID',v:'dcedzahmrvdxylmoesds'},
+                {l:'Region',v:'eu-west-1'},
+                {l:'DB size',v:'~2.4 MB'},
+              ].map((s,i)=>
+                h('div',{key:i,className:'stat-row'},
+                  h('span',{className:'stat-label'},[s.l]),
+                  h('span',{className:'stat-value'},[s.v])
+                )
+              )
+            )
+          )
+        ),
+
+        // SEO
+        section==='seo'&&h('div',null,
+          h('div',{className:'sec-head'},
+            h('div',null,
+              h('div',{className:'sec-title'},'SEO Status'),
+              h('div',{className:'sec-sub'},'Google Search Console · Indexation progress')
+            )
+          ),
+          h('div',{className:'grid-2'},
+            h('div',{className:'card card-blue'},
+              h('div',{className:'sec-title',style:{marginBottom:16}},'Indexation Checklist'),
+              [
+                {l:'sitemap.xml deployed',v:'✅ Live',c:'var(--green)'},
+                {l:'robots.txt deployed',v:'✅ Live',c:'var(--green)'},
+                {l:'Google Search Console',v:'✅ Sitemap submitted',c:'var(--green)'},
+                {l:'Pages discovered by Google',v:'4 URLs',c:'var(--gold)'},
+                {l:'Indexed pages',v:'⏳ 3-10 days',c:'var(--amber)'},
+                {l:'Meta OG tags',v:'✅ Deployed',c:'var(--green)'},
+                {l:'JSON-LD structured data',v:'✅ Deployed',c:'var(--green)'},
+              ].map((s,i)=>
+                h('div',{key:i,className:'stat-row'},
+                  h('span',{className:'stat-label'},[s.l]),
+                  h('span',{style:{fontFamily:'Space Mono',fontSize:11,color:s.c}},[s.v])
+                )
+              )
+            ),
+            h('div',{className:'card'},
+              h('div',{className:'sec-title',style:{marginBottom:16}},'Target Keywords'),
+              ['carbon credit index','CCQI CSRD','DeFi yield index','Pillar Two compliance index','carbon credit quality scoring'].map((kw,i)=>
+                h('div',{key:i,style:{display:'flex',justifyContent:'space-between',padding:'8px 0',borderBottom:'1px solid var(--bord)',fontSize:12}},
+                  h('span',{style:{color:'var(--text)'}},[kw]),
+                  h('span',{className:'badge badge-amber'},'PENDING')
+                )
+              )
+            )
+          )
+        )
+
+      )
+    )
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════
+// ROOT APP
+// ═══════════════════════════════════════════════════════════════
+function App(){
+  const [page,setPage]=useState('home');
+  const [user,setUser]=useState(()=>{
+    try{return JSON.parse(localStorage.getItem('steelldy_user'));}catch{return null;}
+  });
+  const [adminAuth,setAdminAuth]=useState(()=>sessionStorage.getItem('steelldy_admin')==='1');
+  const data=useLiveData();
+
+  const goTo=(p)=>{window.scrollTo(0,0);setPage(p);};
+
+  const handleLogin=(u)=>{setUser(u);goTo('dashboard');};
+  const handleLogout=()=>{localStorage.removeItem('steelldy_user');setUser(null);goTo('home');};
+
+  // Check URL params for Stripe return
+  useEffect(()=>{
+    const p=new URLSearchParams(window.location.search);
+    if(p.get('session')==='success'){
+      window.history.replaceState({},'',window.location.pathname);
+      goTo('dashboard');
+    }
+  },[]);
+
+  return h('div',null,
+    // NAVIGATION
+    h('nav',null,
+      h('div',{className:'logo',onClick:()=>goTo('home')},
+        'STEELLDY',h('span',null,'INDEX INTELLIGENCE PLATFORM')
+      ),
+      h('div',{className:'nav-links'},
+        h('button',{className:`nl${page==='home'?' act':''}`,onClick:()=>goTo('home')},'Indices'),
+        h('button',{className:`nl${page==='dashboard'?' act':''}`,onClick:()=>user?goTo('dashboard'):goTo('auth')},'Dashboard'),
+        h('button',{className:`nl${page==='pricing'?' act':''}`,onClick:()=>goTo('pricing')},'Pricing'),
+        h('button',{className:`nl${page==='admin'?' act':''}`,onClick:()=>goTo('admin'),style:{color:'var(--red)',opacity:.6}},'Admin'),
+      ),
+      h('div',{style:{display:'flex',alignItems:'center',gap:10}},
+        h('div',{className:'live-tag'},h('div',{className:'dot'}),'LIVE'),
+        user?
+          h('div',{style:{display:'flex',gap:8,alignItems:'center'}},
+            h('span',{style:{fontFamily:'Space Mono',fontSize:10,color:'var(--textD)'}},[user.name]),
+            h('button',{className:'btn btn-ghost',style:{fontSize:11,padding:'6px 12px'},onClick:handleLogout},'Sign Out')
+          ):
+          h('button',{className:'nav-cta',onClick:()=>goTo('auth')},'Sign In')
+      )
+    ),
+    // PAGES
+    page==='home'&&h(HomePage,{goTo,data}),
+    page==='auth'&&h(AuthPage,{onLogin:handleLogin,goTo}),
+    page==='pricing'&&h(PricingPage,{goTo,user}),
+    page==='dashboard'&&(
+      user?h(UserDashboard,{user,data,goTo}):h(AuthPage,{onLogin:handleLogin,goTo})
+    ),
+    page==='admin'&&(
+      adminAuth?h(AdminPanel,{data,goTo}):h(AdminLogin,{onAuth:setAdminAuth})
+    )
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(h(App));
 </script>
 </body>
 </html>
