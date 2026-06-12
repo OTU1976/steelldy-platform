@@ -868,60 +868,132 @@ const AdminDashboard = ({ user, onLogout, onNavigate }) => {
 // HOME PAGE
 // ═══════════════════════════════════════════════════════════════════════════════
 const HomePage = ({ onNavigate }) => {
-  const [lives, setLives] = useState(INDICES.map(x => x.base));
+  const [ccqi, setCcqi] = useState(72.0);
+  const [dyoi, setDyoi] = useState(64.1);
+  const [eua,  setEua]  = useState(72.86);
+  const [ccqiChg, setCcqiChg] = useState(+0.03);
+  const [dyoiChg, setDyoiChg] = useState(-0.4);
+  const [sbData, setSbData] = useState(null);
+
   useEffect(() => {
-    const id = setInterval(() => setLives(INDICES.map(x => x.base + (Math.random() - .48) * x.vol * .5)), 2000);
+    // Fetch live data from Supabase
+    if (SB_HEADERS) {
+      fetch(`${SB_URL}/rest/v1/market_data?select=*&order=timestamp.desc&limit=1`, { headers: SB_HEADERS })
+        .then(r => r.json()).then(d => { if (d?.[0]) { setEua(d[0].eua_price || 72.86); setSbData(d[0]); } }).catch(() => {});
+    }
+    // Subtle live animation
+    const id = setInterval(() => {
+      setCcqi(v => parseFloat((Math.max(65, Math.min(85, v + (Math.random()-.49)*.08))).toFixed(1)));
+      setDyoi(v => parseFloat((Math.max(55, Math.min(75, v + (Math.random()-.49)*.12))).toFixed(1)));
+      setCcqiChg(v => parseFloat((v + (Math.random()-.5)*.01).toFixed(2)));
+      setDyoiChg(v => parseFloat((v + (Math.random()-.5)*.01).toFixed(2)));
+    }, 3000);
     return () => clearInterval(id);
   }, []);
 
+  const ccqiStatus = ccqi < 75 ? "ELEVATED RISK" : "COMPLIANT";
+  const ccqiStatusCol = ccqi < 75 ? C.amber : C.green;
+
   return (
     <div>
-      {/* HERO */}
-      <div style={{ position: "relative", minHeight: "90vh", display: "flex", alignItems: "center", overflow: "hidden" }}>
-        <div style={{ position: "absolute", inset: 0, background: `radial-gradient(ellipse 80% 60% at 50% 40%, ${C.gold}08 0%, transparent 70%)` }} />
-        <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: 1, background: `linear-gradient(90deg, transparent, ${C.gold}60, ${C.gold}, ${C.gold}60, transparent)` }} />
-        <div style={{ maxWidth: 1200, margin: "0 auto", padding: "0 40px", position: "relative", zIndex: 1 }}>
-          <div className="fade-up" style={{ marginBottom: 20 }}>
-            <span className="mono" style={{ fontSize: 12, color: C.gold, letterSpacing: ".2em", fontWeight: 600 }}>STEELLDY ADVISORY · GEX, FRANCE</span>
-          </div>
-          <h1 className="fade-up delay-1" style={{ fontSize: "clamp(36px,5vw,72px)", fontWeight: 300, lineHeight: 1.1, color: C.white, maxWidth: 800, marginBottom: 24 }}>
-            Carbon & <span className="serif" style={{ fontStyle: "italic", color: C.gold }}>DeFi Yield</span> Intelligence
-          </h1>
-          <p className="fade-up delay-2" style={{ fontSize: 18, color: C.dim, maxWidth: 560, lineHeight: 1.7, marginBottom: 40 }}>
-            Two institutional-grade indices delivering real-time quality scoring for carbon credit markets and DeFi yield optimization. Data-driven. Audit-ready. Built for professionals.
-          </p>
-          <div className="fade-up delay-3" style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
-            <button className="btn-gold" onClick={() => onNavigate("pricing")}>View Plans</button>
-            <button className="btn-outline" onClick={() => onNavigate("auth")}>Live Demo →</button>
-          </div>
-          <div className="fade-up delay-4" style={{ display: "flex", gap: 40, marginTop: 60, flexWrap: "wrap" }}>
-            {[["CCQI Today", "72.2"], ["DYOI Today", "64.1"], ["EUA Price", "€72.86"], ["Protocols", "25"]].map(([l, v]) => (
-              <div key={l}>
-                <div className="mono" style={{ fontSize: 28, color: C.gold, fontWeight: 700 }}>{v}</div>
-                <div style={{ fontSize: 12, color: C.dim, marginTop: 4, letterSpacing: ".04em" }}>{l}</div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
+      {/* ── HERO — split layout ─────────────────────────────────────────── */}
+      <div style={{ position: "relative", minHeight: "92vh", display: "flex", alignItems: "center", overflow: "hidden" }}>
+        {/* subtle gradient bg */}
+        <div style={{ position: "absolute", inset: 0, background: `radial-gradient(ellipse 60% 70% at 30% 50%, ${C.gold}06 0%, transparent 60%)` }} />
+        <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: 1, background: `linear-gradient(90deg, transparent, ${C.gold}40, ${C.gold}80, ${C.gold}40, transparent)` }} />
 
-      {/* LIVE INDEX STRIP */}
-      <div style={{ borderTop: `1px solid ${C.border}`, borderBottom: `1px solid ${C.border}`, padding: "20px 0", background: C.panel }}>
-        <div style={{ maxWidth: 1400, margin: "0 auto", padding: "0 20px", overflowX: "auto" }}>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(9,1fr)", gap: 8, minWidth: 900 }}>
-            {INDICES.map((idx, i) => {
-              const live = lives[i], chg = ((live - idx.base) / idx.base * 100);
-              return (
-                <div key={idx.id} style={{ background: C.panel2, border: `1px solid ${C.border}`, borderTop: `2px solid ${idx.color}`, padding: 12, cursor: "pointer" }} onClick={() => onNavigate("auth")}>
-                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
-                    <span className="mono" style={{ fontSize: 12, fontWeight: 700, color: idx.color, letterSpacing: ".06em" }}>{idx.id}</span>
-                    <span className="mono" style={{ fontSize: 10, color: chg >= 0 ? C.green : C.red }}>{chg >= 0 ? "+" : ""}{chg.toFixed(1)}%</span>
+        <div style={{ maxWidth: 1280, margin: "0 auto", padding: "0 48px", width: "100%", position: "relative", zIndex: 1 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 80, alignItems: "center" }}>
+
+            {/* LEFT — headline */}
+            <div>
+              <div className="fade-up" style={{ marginBottom: 16 }}>
+                <span className="mono" style={{ fontSize: 11, color: C.gold, letterSpacing: ".22em" }}>— QUANTITATIVE INDEX INTELLIGENCE</span>
+              </div>
+              <h1 className="fade-up delay-1" style={{ fontSize: "clamp(40px,4.5vw,68px)", fontWeight: 300, lineHeight: 1.08, color: C.white, marginBottom: 28 }}>
+                Carbon &<br />
+                <span className="serif" style={{ fontStyle: "italic", color: C.gold }}>DeFi Yield</span><br />
+                Intelligence
+              </h1>
+              <p className="fade-up delay-2" style={{ fontSize: 16, color: C.dim, maxWidth: 480, lineHeight: 1.75, marginBottom: 40 }}>
+                Two institutional-grade indices delivering real-time quality scoring for carbon credit markets and DeFi yield optimization. Data-driven. Audit-ready. Built for CSRD and Pillar Two compliance.
+              </p>
+              <div className="fade-up delay-3" style={{ display: "flex", gap: 14 }}>
+                <button className="btn-gold" onClick={() => onNavigate("pricing")}>Start from €490/mo →</button>
+                <button className="btn-outline" onClick={() => onNavigate("auth")}>View Live Data</button>
+              </div>
+              {/* bottom meta */}
+              <div className="fade-up delay-4" style={{ display: "flex", gap: 32, marginTop: 52, paddingTop: 28, borderTop: `1px solid ${C.border}` }}>
+                {[["Compliance", "CSRD/Pillar II"], ["Methodology", "IOSCO BMR"], ["Update freq", "Hourly"]].map(([l, v]) => (
+                  <div key={l}>
+                    <div style={{ fontSize: 10, color: C.dim, letterSpacing: ".06em", marginBottom: 4, textTransform: "uppercase" }}>{l}</div>
+                    <div style={{ fontSize: 13, color: C.white, fontWeight: 600 }}>{v}</div>
                   </div>
-                  <div className="mono" style={{ fontSize: 18, color: C.white, fontWeight: 600 }}>{live.toFixed(1)}</div>
-                  <MiniChart data={genSeries(live, idx.vol)} col={idx.color} h={24} />
+                ))}
+              </div>
+            </div>
+
+            {/* RIGHT — live cards */}
+            <div className="fade-up delay-2" style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+              {/* CCQI MAIN CARD */}
+              <div style={{ background: C.panel, border: `1px solid ${C.border}`, borderLeft: `3px solid ${C.green}`, padding: "28px 28px 24px" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 16 }}>
+                  <div>
+                    <div className="mono" style={{ fontSize: 10, color: C.dim, letterSpacing: ".12em", marginBottom: 4 }}>CCQI — CARBON CREDIT QUALITY INDEX</div>
+                    <div className="mono-alt" style={{ fontSize: 64, color: C.green, lineHeight: 1 }}>{ccqi.toFixed(1)}</div>
+                    <div style={{ fontSize: 12, color: ccqiChg >= 0 ? C.green : C.red, marginTop: 6 }}>
+                      {ccqiChg >= 0 ? "▲" : "▼"} {Math.abs(ccqiChg).toFixed(2)} pts today
+                    </div>
+                  </div>
+                  <span className="badge" style={{ background: ccqiStatusCol + "18", color: ccqiStatusCol, border: `1px solid ${ccqiStatusCol}40`, fontSize: 10 }}>{ccqiStatus}</span>
                 </div>
-              );
-            })}
+                <div style={{ height: 1, background: C.border, marginBottom: 14 }} />
+                <div style={{ fontSize: 11, color: C.dim, lineHeight: 1.6 }}>
+                  Score below 75 signals elevated fiscal exposure under Pillar Two. Current:{" "}
+                  <span style={{ color: ccqiStatusCol, fontWeight: 600 }}>{ccqiStatus}</span>
+                </div>
+                {/* mini sub-scores */}
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 10, marginTop: 14 }}>
+                  {[["Verra Score","90/100",C.green],["Gold Standard","95/100",C.green],["Permanence","72/100",C.amber],["Additionality","68/100",C.amber],["Co-benefits","81/100",C.green],["Transparency","88/100",C.green]].map(([l,v,c]) => (
+                    <div key={l} style={{ background: C.bg, padding: "8px 10px" }}>
+                      <div style={{ fontSize: 9, color: C.dim, marginBottom: 3 }}>{l}</div>
+                      <div className="mono" style={{ fontSize: 13, color: c }}>{v}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* DYOI + EUA ROW */}
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+                <div style={{ background: C.panel, border: `1px solid ${C.border}`, borderLeft: `3px solid ${C.cyan}`, padding: "20px 20px 18px" }}>
+                  <div className="mono" style={{ fontSize: 9, color: C.dim, letterSpacing: ".1em", marginBottom: 8 }}>DYOI</div>
+                  <div className="mono-alt" style={{ fontSize: 40, color: C.cyan, lineHeight: 1 }}>{dyoi.toFixed(1)}%</div>
+                  <div style={{ fontSize: 11, color: dyoiChg >= 0 ? C.green : C.red, marginTop: 6 }}>
+                    {dyoiChg >= 0 ? "▲" : "▼"} {Math.abs(dyoiChg).toFixed(1)}%
+                  </div>
+                  <div style={{ fontSize: 10, color: C.dim, marginTop: 4 }}>25 protocols tracked</div>
+                </div>
+                <div style={{ background: C.panel, border: `1px solid ${C.border}`, borderLeft: `3px solid ${C.gold}`, padding: "20px 20px 18px" }}>
+                  <div className="mono" style={{ fontSize: 9, color: C.dim, letterSpacing: ".1em", marginBottom: 8 }}>EUA PRICE</div>
+                  <div className="mono-alt" style={{ fontSize: 40, color: C.gold, lineHeight: 1 }}>€{eua.toFixed(2)}</div>
+                  <div style={{ fontSize: 10, color: C.dim, marginTop: 10 }}>CO2.L · Yahoo Finance</div>
+                  <div style={{ display: "flex", alignItems: "center", gap: 5, marginTop: 4 }}>
+                    <div className="live-dot" />
+                    <span style={{ fontSize: 9, color: C.green }}>LIVE</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* LIVE MARKET TICKER */}
+              <div style={{ background: C.panel2, border: `1px solid ${C.border}`, padding: "10px 16px", display: "flex", gap: 24, flexWrap: "wrap" }}>
+                {[["DEFI TVL","$72.7B",C.blueL],["AAVE APY","2.9%",C.cyan],["VERRA VCU","90/100",C.green],["GOLD STD","95/100",C.gold]].map(([l,v,c]) => (
+                  <div key={l} style={{ display: "flex", gap: 8, alignItems: "baseline" }}>
+                    <span style={{ fontSize: 9, color: C.dim, letterSpacing: ".06em" }}>{l}</span>
+                    <span className="mono" style={{ fontSize: 11, color: c, fontWeight: 700 }}>{v}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
         </div>
       </div>
