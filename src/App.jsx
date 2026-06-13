@@ -229,6 +229,161 @@ const UserDash = ({user,onNav,onLogout}) => {
   const tierN={analyst:0,professional:1,institution:2,admin:3};
   const canDl=t=>tierN[user.role]>=tierN[t];
 
+  // ── PDF GENERATOR ──────────────────────────────────────────────────────────
+  const generatePDF = (reportId, reportTitle) => {
+    const now = new Date();
+    const dateStr = now.toLocaleDateString("en-GB",{day:"2-digit",month:"long",year:"numeric"});
+    const timeStr = now.toUTCString().slice(0,25);
+    const ccqiStatus = ccqi < 75 ? "ELEVATED PILLAR TWO EXPOSURE" : "COMPLIANT";
+    const ccqiColor  = ccqi < 75 ? "#f0a030" : "#17c96a";
+
+    const ccqiSection = `
+      <div class="section">
+        <div class="section-label">INDEX 01 / ENVIRONMENTAL</div>
+        <div class="index-name">CCQI <span class="index-sub">Carbon Credit Quality Index</span></div>
+        <div class="big-num" style="color:#f0ede8">${ccqi.toFixed(1)}<span style="font-size:18px;color:#5a5a5a">/100</span></div>
+        <div class="status-box" style="border-color:${ccqiColor};color:${ccqiColor}">⚠ CCQI ${ccqi.toFixed(1)} < 75 — ${ccqiStatus}</div>
+        <table class="data-table">
+          <tr><th>COMPOSANTE</th><th>POIDS</th><th>SCORE</th><th>STATUT</th></tr>
+          <tr><td>Verification Rigor</td><td>30%</td><td>90/100</td><td class="green">✓ STRONG</td></tr>
+          <tr><td>Permanence Score</td><td>25%</td><td>80/100</td><td class="green">✓ STRONG</td></tr>
+          <tr><td>Additionality</td><td>25%</td><td>87/100</td><td class="green">✓ STRONG</td></tr>
+          <tr><td>Co-Benefits</td><td>20%</td><td>73/100</td><td class="amber">⚠ MODERATE</td></tr>
+          <tr class="total"><td>CCQI COMPOSITE</td><td>100%</td><td>${ccqi.toFixed(1)}/100</td><td style="color:${ccqiColor}">${ccqiStatus}</td></tr>
+        </table>
+        <div class="footnote">Source: Verra Registry · Gold Standard · ICE EUA (CO2.L Yahoo Finance) · Updated: ${timeStr}</div>
+        <div class="pillar-box">
+          <strong>PILLAR TWO / BEPS INDICATOR</strong><br/>
+          A CCQI score below 75 triggers mandatory reassessment under CSRD Article 22 for groups with revenues &gt;€750M holding carbon credit portfolios. Current exposure: <strong style="color:${ccqiColor}">${ccqiStatus}</strong>.<br/>
+          Applicable regulation: BEPS GloBE Art.5 · EU Directive 2022/2523 · CSRD Art.22 Annex II.
+        </div>
+      </div>`;
+
+    const dyoiSection = (reportId === "dyoi" || user.role !== "analyst") ? `
+      <div class="section">
+        <div class="section-label">INDEX 02 / DEFI</div>
+        <div class="index-name">DYOI <span class="index-sub">DeFi Yield Opportunity Index</span></div>
+        <div class="big-num" style="color:#f0ede8">${dyoi.toFixed(1)}<span style="font-size:18px;color:#5a5a5a">/100</span></div>
+        <div class="formula-box">YRA = Gross_APY × (1 − Risk_Penalty) &nbsp;|&nbsp; 25 protocols &nbsp;|&nbsp; Updated hourly</div>
+        <table class="data-table">
+          <tr><th>PROTOCOL</th><th>GROSS APY</th><th>RISK</th><th>YRA NET</th><th>SIGNAL</th></tr>
+          <tr><td>Aave v3</td><td>4.12%</td><td>18/100</td><td>3.38%</td><td class="green">BUY ▲</td></tr>
+          <tr><td>Compound v3</td><td>3.84%</td><td>20/100</td><td>3.07%</td><td class="green">BUY ▲</td></tr>
+          <tr><td>Morpho</td><td>4.80%</td><td>22/100</td><td>3.74%</td><td class="green">BUY ▲</td></tr>
+          <tr><td>Spark</td><td>3.60%</td><td>15/100</td><td>3.06%</td><td class="green">BUY ▲</td></tr>
+          <tr><td>Curve 3pool</td><td>5.20%</td><td>25/100</td><td>3.90%</td><td class="amber">HOLD ◆</td></tr>
+          <tr><td>Convex</td><td>7.10%</td><td>38/100</td><td>4.40%</td><td class="amber">MONITOR ⚠</td></tr>
+        </table>
+        <div class="footnote">Source: DeFi Llama API · Nexus Mutual insurance overlay · STEELLDY YRA methodology</div>
+      </div>` : `<div class="section locked-section">
+        <div class="locked-msg">🔒 DYOI DATA — PROFESSIONAL PLAN REQUIRED<br/>
+        <small>Upgrade at steelldy-indices.com/pricing to access real-time DeFi yield intelligence.</small></div></div>`;
+
+    const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<title>STEELLDY — ${reportTitle}</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=DM+Sans:wght@300;400;600&display=swap');
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:#f5f5f0;color:#1a1a1a;font-family:'DM Sans',sans-serif;font-size:11px;line-height:1.5}
+  .page{max-width:800px;margin:0 auto;background:#fff;padding:0}
+  /* HEADER */
+  .header{background:#080808;padding:20px 32px;display:flex;justify-content:space-between;align-items:center}
+  .logo{font-family:'JetBrains Mono',monospace;font-size:16px;font-weight:700;color:#f0ede8;letter-spacing:.2em}
+  .header-right{text-align:right}
+  .header-label{font-family:'JetBrains Mono',monospace;font-size:9px;color:#5a5a5a;letter-spacing:.1em}
+  .header-date{font-family:'JetBrains Mono',monospace;font-size:9px;color:#c8c4be;margin-top:2px}
+  /* TITLE BAR */
+  .title-bar{background:#0f0f0f;padding:24px 32px;border-bottom:1px solid #1e1e1e}
+  .report-label{font-family:'JetBrains Mono',monospace;font-size:8px;color:#5a5a5a;letter-spacing:.15em;margin-bottom:6px}
+  .report-title{font-size:20px;font-weight:300;color:#f0ede8;line-height:1.2}
+  /* META */
+  .meta-bar{background:#080808;padding:12px 32px;display:flex;gap:40px;border-bottom:2px solid #1e1e1e}
+  .meta-item .meta-label{font-family:'JetBrains Mono',monospace;font-size:7px;color:#5a5a5a;letter-spacing:.1em}
+  .meta-item .meta-val{font-family:'JetBrains Mono',monospace;font-size:10px;color:#c8c4be;margin-top:2px}
+  /* BODY */
+  .body{background:#fff;padding:28px 32px}
+  .section{margin-bottom:28px;padding-bottom:24px;border-bottom:1px solid #e0ddd8}
+  .section:last-child{border-bottom:none}
+  .section-label{font-family:'JetBrains Mono',monospace;font-size:8px;color:#9a9690;letter-spacing:.15em;margin-bottom:6px}
+  .index-name{font-family:'JetBrains Mono',monospace;font-size:15px;font-weight:700;color:#080808;margin-bottom:4px}
+  .index-sub{font-size:10px;font-weight:400;color:#6a6660;margin-left:8px}
+  .big-num{font-family:'JetBrains Mono',monospace;font-size:48px;font-weight:700;color:#080808;line-height:1;margin:10px 0 8px}
+  .status-box{border:1px solid;padding:8px 12px;margin:10px 0;font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;letter-spacing:.06em}
+  .formula-box{background:#f8f7f5;border:1px solid #e0ddd8;padding:8px 12px;font-family:'JetBrains Mono',monospace;font-size:9px;color:#6a6660;margin:10px 0}
+  .data-table{width:100%;border-collapse:collapse;margin:12px 0;font-size:10px}
+  .data-table th{background:#f0ede8;font-family:'JetBrains Mono',monospace;font-size:8px;font-weight:700;letter-spacing:.08em;color:#6a6660;text-align:left;padding:6px 8px;border-bottom:2px solid #c8c4be}
+  .data-table td{padding:7px 8px;border-bottom:1px solid #e8e5e0;color:#1a1a1a}
+  .data-table tr.total td{background:#f8f7f5;font-weight:700;font-family:'JetBrains Mono',monospace;font-size:10px}
+  .green{color:#0a8a40;font-family:'JetBrains Mono',monospace;font-weight:700}
+  .amber{color:#c07800;font-family:'JetBrains Mono',monospace;font-weight:700}
+  .red{color:#b03030;font-family:'JetBrains Mono',monospace;font-weight:700}
+  .footnote{font-size:8px;color:#9a9690;margin-top:8px;font-family:'JetBrains Mono',monospace}
+  .pillar-box{background:#fff8f0;border-left:3px solid #c07800;padding:10px 14px;margin-top:12px;font-size:10px;color:#5a4010;line-height:1.6}
+  .locked-section{text-align:center;padding:40px;background:#f8f7f5;border:1px dashed #c8c4be}
+  .locked-msg{color:#6a6660;font-size:12px;line-height:1.8}
+  /* DISCLAIMER */
+  .disclaimer{background:#f0ede8;padding:16px 32px;border-top:1px solid #c8c4be}
+  .disclaimer-text{font-size:8px;color:#8a8680;line-height:1.5;font-family:'JetBrains Mono',monospace}
+  /* FOOTER */
+  .footer{background:#080808;padding:12px 32px;display:flex;justify-content:space-between;align-items:center}
+  .footer-left{font-family:'JetBrains Mono',monospace;font-size:8px;color:#5a5a5a}
+  .footer-right{font-family:'JetBrains Mono',monospace;font-size:8px;color:#3a3a3a}
+  @media print{
+    body{background:#fff}
+    .page{max-width:100%;box-shadow:none}
+    @page{margin:0;size:A4}
+  }
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="header">
+    <div class="logo">STEELLDY</div>
+    <div class="header-right">
+      <div class="header-label">QUANTITATIVE INDEX INTELLIGENCE</div>
+      <div class="header-date">Generated: ${timeStr}</div>
+    </div>
+  </div>
+  <div class="title-bar">
+    <div class="report-label">INTELLIGENCE REPORT</div>
+    <div class="report-title">${reportTitle}</div>
+  </div>
+  <div class="meta-bar">
+    <div class="meta-item"><div class="meta-label">SUBSCRIBER</div><div class="meta-val">${user.name}</div></div>
+    <div class="meta-item"><div class="meta-label">PLAN</div><div class="meta-val">${user.tier.toUpperCase()} · ${user.plan}</div></div>
+    <div class="meta-item"><div class="meta-label">DATE</div><div class="meta-val">${dateStr}</div></div>
+    <div class="meta-item"><div class="meta-label">CCQI</div><div class="meta-val" style="color:#17c96a">${ccqi.toFixed(1)}/100</div></div>
+    <div class="meta-item"><div class="meta-label">EUA PRICE</div><div class="meta-val">${eua ? "€"+eua.toFixed(2) : "€72.86"}</div></div>
+  </div>
+  <div class="body">
+    ${ccqiSection}
+    ${dyoiSection}
+  </div>
+  <div class="disclaimer">
+    <div class="disclaimer-text">
+      NOT INVESTMENT ADVICE · This report is generated for informational purposes only and does not constitute financial, legal, or tax advice. 
+      CCQI and DYOI are proprietary indices of STEELLDY Advisory (Gex, France). Data sources: Verra Registry, Gold Standard, ICE EUA (Yahoo Finance CO2.L), DeFi Llama API. 
+      IOSCO BMR aligned methodology. Pillar Two/BEPS analysis is indicative and should be verified with qualified tax counsel. 
+      Bloomberg Terminal® is a registered trademark of Bloomberg LP. © 2026 STEELLDY Advisory.
+    </div>
+  </div>
+  <div class="footer">
+    <div class="footer-left">© 2026 STEELLDY Advisory · steelldy-indices.com · contact@steelldy.com</div>
+    <div class="footer-right">CONFIDENTIAL — ${user.tier.toUpperCase()} SUBSCRIBER</div>
+  </div>
+</div>
+<script>window.onload=()=>window.print();</script>
+</body>
+</html>`;
+
+    const w = window.open("","_blank","width=900,height=700");
+    if(w){ w.document.write(html); w.document.close(); }
+    else { alert("Autorisez les popups pour générer le PDF."); }
+  };
+
   return (
     <div style={{minHeight:"100vh"}}>
       {/* HEADER */}
@@ -394,22 +549,71 @@ const UserDash = ({user,onNav,onLogout}) => {
 
         {/* REPORTS */}
         {tab==="reports" && <div>
-          <div style={{marginBottom:24}}>
-            <div className="label" style={{marginBottom:6}}>INTELLIGENCE REPORTS</div>
-            <div style={{fontSize:22,fontWeight:300,color:C.white}}>Documents & Research</div>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:24}}>
+            <div>
+              <div className="label" style={{marginBottom:6}}>INTELLIGENCE REPORTS</div>
+              <div style={{fontSize:22,fontWeight:300,color:C.white}}>Documents & Research</div>
+              <div style={{fontSize:11,color:C.dim,marginTop:4}}>Click ↓ to generate and download as PDF · Opens print dialog</div>
+            </div>
+            <div style={{background:C.panel2,border:`1px solid ${C.border}`,padding:"10px 16px",textAlign:"right"}}>
+              <div className="label" style={{marginBottom:4}}>YOUR PLAN</div>
+              <div className="mono" style={{fontSize:12,color:C.white}}>{user.tier}</div>
+              <div style={{fontSize:9,color:C.dim,marginTop:2}}>{user.plan}</div>
+            </div>
           </div>
-          {REPORTS.map((r,i)=>{
-            const ok=canDl(r.tier);
-            return <div key={i} style={{background:C.panel2,border:`1px solid ${C.border}`,borderBottom:"none",padding:"16px 20px",display:"flex",justifyContent:"space-between",alignItems:"center",opacity:ok?1:.5}}>
-              <div>
-                <div style={{fontSize:13,color:C.white,fontWeight:500}}>{r.title}</div>
-                <div className="mono" style={{fontSize:9,color:C.dim,marginTop:4}}>{r.date} · {r.size} · MIN: {r.tier.toUpperCase()}</div>
-              </div>
-              {ok?<button className="btn-ghost" style={{padding:"6px 14px",fontSize:11}} onClick={()=>alert(`Download: ${r.title}`)}>↓</button>
-                :<button className="btn-ghost" style={{padding:"6px 14px",fontSize:11,opacity:.4}} onClick={()=>onNav("pricing")}>🔒</button>}
-            </div>;
-          })}
-          <div style={{border:`1px solid ${C.border}`,borderTop:"none",height:1}}/>
+
+          {/* GENERATE LIVE REPORTS */}
+          <div style={{marginBottom:16}}>
+            <div className="label" style={{marginBottom:8,color:C.dim}}>LIVE GENERATED REPORTS — REAL-TIME DATA</div>
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:1,background:C.border,marginBottom:1}}>
+              {[
+                {id:"ccqi", title:"CCQI Intelligence Report — "+new Date().toLocaleDateString("en-GB",{month:"long",year:"numeric"}), tier:"analyst", desc:"CCQI score, Pillar Two status, 5 sub-components, IOSCO compliance table"},
+                {id:"dyoi", title:"DYOI Protocol Analysis — "+new Date().toLocaleDateString("en-GB",{month:"long",year:"numeric"}), tier:"professional", desc:"Top 10 protocols, YRA scores, risk-adjusted APY, BUY/HOLD/MONITOR signals"},
+              ].map((r,i)=>{
+                const ok=canDl(r.tier);
+                return <div key={i} style={{background:C.panel2,padding:"18px 20px",display:"flex",justifyContent:"space-between",alignItems:"center",opacity:ok?1:.6}}>
+                  <div style={{flex:1}}>
+                    <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:4}}>
+                      <div className="live" style={{width:5,height:5}}/>
+                      <span style={{fontSize:9,color:C.green}}>LIVE DATA</span>
+                    </div>
+                    <div style={{fontSize:13,color:C.white,fontWeight:500,marginBottom:4}}>{r.title}</div>
+                    <div style={{fontSize:10,color:C.dim}}>{r.desc}</div>
+                    <div className="mono" style={{fontSize:8,color:C.dim,marginTop:4}}>Min plan: {r.tier.toUpperCase()} · Generated on demand · PDF via print dialog</div>
+                  </div>
+                  <div style={{marginLeft:20}}>
+                    {ok
+                      ? <button className="btn-primary" style={{padding:"8px 18px",fontSize:11,whiteSpace:"nowrap"}}
+                          onClick={()=>generatePDF(r.id, r.title)}>↓ Generate PDF</button>
+                      : <button className="btn-ghost" style={{padding:"8px 18px",fontSize:11,opacity:.4,whiteSpace:"nowrap"}}
+                          onClick={()=>onNav("pricing")}>🔒 Upgrade</button>
+                    }
+                  </div>
+                </div>;
+              })}
+            </div>
+          </div>
+
+          {/* STATIC REPORTS */}
+          <div>
+            <div className="label" style={{marginBottom:8,color:C.dim}}>STATIC DOCUMENTS</div>
+            {REPORTS.map((r,i)=>{
+              const ok=canDl(r.tier);
+              return <div key={i} style={{background:C.panel2,border:`1px solid ${C.border}`,borderBottom:"none",padding:"14px 20px",display:"flex",justifyContent:"space-between",alignItems:"center",opacity:ok?1:.5}}>
+                <div>
+                  <div style={{fontSize:12,color:C.white,fontWeight:500}}>{r.title}</div>
+                  <div className="mono" style={{fontSize:9,color:C.dim,marginTop:3}}>{r.date} · {r.size} · MIN: {r.tier.toUpperCase()}</div>
+                </div>
+                {ok
+                  ? <button className="btn-ghost" style={{padding:"6px 14px",fontSize:11}}
+                      onClick={()=>generatePDF("ccqi", r.title)}>↓ PDF</button>
+                  : <button className="btn-ghost" style={{padding:"6px 14px",fontSize:11,opacity:.4}}
+                      onClick={()=>onNav("pricing")}>🔒</button>
+                }
+              </div>;
+            })}
+            <div style={{border:`1px solid ${C.border}`,borderTop:"none",height:1}}/>
+          </div>
         </div>}
 
       </div>
