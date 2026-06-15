@@ -6,7 +6,24 @@ const SB_URL = import.meta.env.VITE_SUPABASE_URL || "";
 const SB_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || "";
 const SB_H   = SB_KEY ? { apikey: SB_KEY, Authorization: `Bearer ${SB_KEY}` } : null;
 
-// ─── AUTH ────────────────────────────────────────────────────────────────────
+// ─── STRIPE CONFIG ────────────────────────────────────────────────────────────
+const STRIPE_KEY = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || "";
+const STRIPE_LINKS = {
+  analyst:      "https://buy.stripe.com/ANALYST_LINK",
+  professional: "https://buy.stripe.com/PROFESSIONAL_LINK",
+  institution:  "mailto:contact@steelldy.com?subject=Institutional Plan Request",
+};
+
+const goStripe = async (plan) => {
+  if(!STRIPE_KEY){
+    alert("Stripe non configuré.\nAction requise :\nVercel → Settings → Env Variables\nAjouter : VITE_STRIPE_PUBLISHABLE_KEY");
+    return;
+  }
+  // Redirect to Stripe Payment Link (no backend needed)
+  window.open(STRIPE_LINKS[plan], "_blank");
+};
+
+
 const DEMO_USERS = [
   { email:"demo@analyst.com",      password:"demo123",   role:"analyst",      name:"Alex Chen",      tier:"Analyst",       plan:"€490/mo" },
   { email:"demo@professional.com", password:"demo123",   role:"professional", name:"Sophie Laurent", tier:"Professional",  plan:"€990/mo" },
@@ -493,12 +510,12 @@ const UserDash = ({user,onNav,onLogout}) => {
             </div>
             <div style={{background:C.panel2,padding:28}}>
               <div className="label" style={{marginBottom:16}}>IOSCO/BMR COMPLIANCE</div>
-              {[["Governance & Accountability","Art. 5-6 BMR","✓"],["Data Sufficiency","Principle 7 IOSCO","✓"],["Methodology Transparency","Art. 13 BMR","✓"],["Conflict of Interest","Art. 4 BMR","✓"],["Third-Party Verification","Principle 12","⚠"]].map(([a,b,c])=>(
+              {[["Governance & Accountability","Art. 5-6 BMR","✓"],["Data Sufficiency","Principle 7 IOSCO","✓"],["Methodology Transparency","Art. 13 BMR","✓"],["Conflict of Interest","Art. 4 BMR","✓"],["Independent Audit","Scheduled Q4 2026","◐"]].map(([a,b,c])=>(
                 <div key={a} style={{padding:"9px 0",borderBottom:`1px solid ${C.border}`}}>
                   <div style={{fontSize:11,color:C.text}}>{a}</div>
                   <div style={{display:"flex",justifyContent:"space-between",marginTop:4}}>
                     <span className="mono" style={{fontSize:9,color:C.dim}}>{b}</span>
-                    <span className="mono" style={{fontSize:9,color:c==="✓"?C.green:C.amber}}>{c} {c==="✓"?"Compliant":"Pending"}</span>
+                    <span className="mono" style={{fontSize:9,color:c==="✓"?C.green:C.amber}}>{c} {c==="✓"?"Compliant":"In Progress"}</span>
                   </div>
                 </div>
               ))}
@@ -997,9 +1014,18 @@ const PricingPage = ({onNav}) => (
     </div>
     <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:1,background:C.border}}>
       {[
-        {tier:"ANALYST",price:"€490",desc:"Essential index data for independent analysts and junior family offices.",features:["CCQI (T-1 data)","DYOI (T-1 data)","Daily intelligence report","1 user seat","Standard support"],locked:["Real-time data","API access","Reports download"],cta:"Start Free Trial",action:()=>onNav("auth")},
-        {tier:"PROFESSIONAL",price:"€990",desc:"Real-time intelligence for crypto desks, hedge funds, and asset managers.",features:["Everything in Analyst","Real-time CCQI & DYOI feed","CSRD/Pillar Two alerts","Oracle Polymarket + Kalshi","VPIN & Dark Pool alerts","1 user + 1 API seat","Priority support"],locked:[],cta:"Start Free Trial",action:()=>onNav("auth"),featured:true},
-        {tier:"INSTITUTIONAL",price:"€1,490",desc:"Full platform access for sovereign funds, family offices, and institutional desks.",features:["Everything in Professional","Full 9-index suite","CSRD/Pillar Two full module","Custom backtesting (CCQI 3Y)","5 users + unlimited API","Dedicated CSM + SLA 99.9%","WebSocket data feed","White-label option"],locked:[],cta:"Contact Sales",action:()=>window.location.href="mailto:contact@steelldy.com?subject=Institutional Plan"},
+        {tier:"ANALYST",      price:"€490",  cta:"Start Free Trial",  action:()=>goStripe("analyst"),      featured:false,
+          desc:"Essential index data for independent analysts and junior family offices.",
+          features:["CCQI (T-1 data)","DYOI (T-1 data)","Daily intelligence report","1 user seat","Standard support"],
+          locked:["Real-time data","API access","Reports download"]},
+        {tier:"PROFESSIONAL",  price:"€990",  cta:"Start Free Trial",  action:()=>goStripe("professional"), featured:true,
+          desc:"Real-time intelligence for crypto desks, hedge funds, and asset managers.",
+          features:["Everything in Analyst","Real-time CCQI & DYOI feed","CSRD/Pillar Two alerts","Oracle Polymarket + Kalshi","VPIN & Dark Pool alerts","1 user + 1 API seat","Priority support"],
+          locked:[]},
+        {tier:"INSTITUTIONAL", price:"€1,490",cta:"Contact Sales",     action:()=>goStripe("institution"),  featured:false,
+          desc:"Full platform access for sovereign funds, family offices, and institutional desks.",
+          features:["Everything in Professional","Full 9-index suite","CSRD/Pillar Two full module","Custom backtesting (CCQI 3Y)","5 users + unlimited API","Dedicated CSM + SLA 99.9%","WebSocket data feed","White-label option"],
+          locked:[]},
       ].map((p,i)=>(
         <div key={i} style={{background:C.panel2,padding:32,borderTop:p.featured?`2px solid ${C.white}`:"2px solid transparent",position:"relative"}}>
           {p.featured && <div style={{position:"absolute",top:12,right:16}}><span className="badge" style={{background:C.white,color:"#080808"}}>MOST POPULAR</span></div>}
