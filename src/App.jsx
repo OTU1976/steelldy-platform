@@ -1053,11 +1053,96 @@ const PricingPage = ({onNav}) => (
 // ══════════════════════════════════════════════════════════════════════════════
 // MAIN APP
 // ══════════════════════════════════════════════════════════════════════════════
+// ── METHODOLOGY PAGE — SEO content ──────────────────────────────────────────
+const MethodologyPage = ({onNav}) => (
+  <div style={{maxWidth:900,margin:"0 auto",padding:"72px 48px"}}>
+    <div style={{marginBottom:48}}>
+      <div className="label" style={{marginBottom:8}}>METHODOLOGY</div>
+      <h1 style={{fontSize:38,fontWeight:300,color:C.white,lineHeight:1.1,marginBottom:16}}>
+        CCQI & DYOI — <span className="serif" style={{fontStyle:"italic"}}>Quantitative Methodology</span>
+      </h1>
+      <p style={{fontSize:14,color:C.dim,lineHeight:1.8,maxWidth:680}}>
+        STEELLDY indices are constructed using institutional-grade quantitative frameworks aligned with IOSCO Principles for Financial Benchmarks and the EU Benchmark Regulation (BMR). All data sources are publicly verifiable and updated on a real-time or hourly basis.
+      </p>
+    </div>
+    {[
+      {id:"CCQI",title:"Carbon Credit Quality Index (CCQI)",color:C.green,desc:"The CCQI measures the real-time quality of carbon credit portfolios for institutional investors subject to CSRD reporting and BEPS Pillar Two compliance. A CCQI score below 75 triggers mandatory reassessment obligations under CSRD Article 22 for groups with annual revenues exceeding €750 million.",formula:"CCQI = 0.30 × Verification_Score + 0.25 × Permanence_Score + 0.25 × Additionality_Score + 0.20 × CoBenefits_Score",components:[["Verification Rigor (30%)","Verra VCU registry quality scores, Gold Standard certification level, third-party audit frequency."],["Permanence Score (25%)","Buffer pool adequacy, reversal risk assessment, project durability metrics from Verra and Gold Standard."],["Additionality (25%)","Baseline scenario robustness, regulatory surplus, financial additionality demonstration per Gold Standard v4.0."],["Co-Benefits (20%)","SDG alignment score, biodiversity impact, social co-benefits per ICROA standards."],["EUA Signal (overlay)","ICE European Carbon Allowance price correlation (ρ=0.78) as leading indicator for voluntary credit quality premium/discount."]],sources:["Verra VCU Registry (public API)","Gold Standard Impact Registry","ICE EUA Futures (CO2.L · Yahoo Finance)","CoinGecko carbon market data","ICVCM Core Carbon Principles (2023)"]},
+      {id:"DYOI",title:"DeFi Yield Opportunity Index (DYOI)",color:C.cyan,desc:"The DYOI provides institutional investors with a risk-adjusted yield intelligence score across 25 major DeFi protocols. The index applies a proprietary Yield Risk-Adjusted (YRA) methodology that penalises protocols exhibiting elevated smart contract risk, governance centralization, or liquidity concentration.",formula:"YRA = Gross_APY × (1 − Risk_Penalty)   |   Risk_Penalty = f(audit_score, TVL_volatility, hack_history, governance_score)",components:[["Protocol Selection","Top 25 protocols by TVL from DeFi Llama, minimum $50M TVL threshold, minimum 6-month track record."],["Risk Scoring","Smart contract audit score (Certik, OpenZeppelin), historical exploit frequency, governance centralization (Nakamoto coefficient)."],["Yield Calculation","Gross APY from DeFi Llama API (hourly), net of estimated gas costs for median position size of $500K."],["YRA Aggregation","TVL-weighted average of risk-adjusted yields across all 25 protocols, updated hourly."],["Insurance Overlay","Nexus Mutual and InsurAce coverage availability as binary signal for protocol eligibility."]],sources:["DeFi Llama API (public)","Nexus Mutual Protocol Data","CoinGecko DEX data","Certik Audit Database","Chainalysis DeFi risk data"]},
+    ].map((idx,i)=>(
+      <div key={i} style={{background:C.panel2,border:`1px solid ${C.border}`,borderLeft:`3px solid ${idx.color}`,padding:32,marginBottom:24}}>
+        <div className="label" style={{color:idx.color,marginBottom:8}}>INDEX 0{i+1}</div>
+        <h2 style={{fontSize:22,fontWeight:600,color:C.white,marginBottom:12}}>{idx.title}</h2>
+        <p style={{fontSize:13,color:C.dim,lineHeight:1.8,marginBottom:20}}>{idx.desc}</p>
+        <div style={{background:C.bg,border:`1px solid ${C.border}`,padding:"12px 16px",marginBottom:20,fontFamily:"'JetBrains Mono',monospace",fontSize:11,color:idx.color}}>{idx.formula}</div>
+        <div className="label" style={{marginBottom:12}}>COMPONENTS</div>
+        {idx.components.map(([t,d],j)=>(
+          <div key={j} style={{borderBottom:`1px solid ${C.border}`,padding:"10px 0"}}>
+            <div style={{fontSize:12,color:C.white,fontWeight:600,marginBottom:4}}>{t}</div>
+            <div style={{fontSize:11,color:C.dim,lineHeight:1.6}}>{d}</div>
+          </div>
+        ))}
+        <div style={{marginTop:16}}>
+          <div className="label" style={{marginBottom:8}}>DATA SOURCES</div>
+          <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+            {idx.sources.map((s,j)=><span key={j} style={{background:C.bg,border:`1px solid ${C.border}`,padding:"3px 10px",fontSize:10,color:C.dim,fontFamily:"'JetBrains Mono',monospace"}}>{s}</span>)}
+          </div>
+        </div>
+      </div>
+    ))}
+    <div style={{background:C.panel,border:`1px solid ${C.border}`,padding:24,marginTop:32}}>
+      <div className="label" style={{marginBottom:8}}>IOSCO COMPLIANCE</div>
+      <p style={{fontSize:12,color:C.dim,lineHeight:1.8}}>STEELLDY indices are designed in alignment with the IOSCO Principles for Financial Benchmarks (2013) and the EU Benchmark Regulation (EU 2016/1011). Independent third-party verification is scheduled for Q4 2026. Indices are not registered benchmarks under BMR and should not be used as the sole basis for financial contracts pending verification. STEELLDY Advisory SAS — Gex, France — contact@steelldy.com</p>
+    </div>
+    <div style={{marginTop:32,textAlign:"center"}}>
+      <button className="btn-primary" style={{padding:"12px 32px",fontSize:13}} onClick={()=>onNav("pricing")}>Access the Indices →</button>
+    </div>
+  </div>
+);
+
+// ── URL ROUTING MAP ───────────────────────────────────────────────────────────
+const URL_TO_PAGE = {
+  "/":            "home",
+  "/pricing":     "pricing",
+  "/methodology": "methodology",
+  "/auth":        "auth",
+  "/login":       "auth",
+  "/dashboard":   "userdash",
+  "/admin":       "admin",
+};
+const PAGE_TO_URL = {
+  "home":        "/",
+  "pricing":     "/pricing",
+  "methodology": "/methodology",
+  "auth":        "/auth",
+  "userdash":    "/dashboard",
+  "admin":       "/admin",
+};
+const getInitialPage = () => {
+  const path = window.location.pathname;
+  return URL_TO_PAGE[path] || "home";
+};
+
 export default function App() {
-  const [page,setPage]=useState("home");
+  const [page,setPage]=useState(()=>getInitialPage());
   const [user,setUser]=useState(()=>getSession());
 
-  const nav=p=>{setPage(p);window.scrollTo(0,0);};
+  const nav=p=>{
+    setPage(p);
+    const url=PAGE_TO_URL[p]||"/";
+    window.history.pushState({page:p},"",url);
+    window.scrollTo(0,0);
+  };
+
+  // Handle browser back/forward
+  useEffect(()=>{
+    const onPop=()=>{
+      const p=URL_TO_PAGE[window.location.pathname]||"home";
+      setPage(p);
+    };
+    window.addEventListener("popstate",onPop);
+    return ()=>window.removeEventListener("popstate",onPop);
+  },[]);
+
   const safNav=p=>{
     if(p==="auth"&&user) nav(user.role==="admin"?"admin":"userdash");
     else nav(p);
@@ -1077,7 +1162,7 @@ export default function App() {
         <div style={{maxWidth:1280,margin:"0 auto",display:"flex",justifyContent:"space-between",alignItems:"center",height:52}}>
           <div style={{display:"flex",alignItems:"center",gap:32}}>
             <span onClick={()=>nav("home")} className="mono" style={{fontSize:14,fontWeight:700,color:C.white,letterSpacing:".2em",cursor:"pointer"}}>STEELLDY</span>
-            {[["home","Home"],["pricing","Pricing"]].map(([id,l])=>(
+            {[["home","Home"],["methodology","Methodology"],["pricing","Pricing"]].map(([id,l])=>(
               <button key={id} onClick={()=>nav(id)} className={`nav-link ${page===id?"active":""}`}>{l}</button>
             ))}
           </div>
@@ -1098,8 +1183,9 @@ export default function App() {
         </div>
       </nav>
 
-      {page==="home"    && <HomePage    onNav={safNav}/>}
-      {page==="pricing" && <PricingPage onNav={safNav}/>}
+      {page==="home"        && <HomePage        onNav={safNav}/>}
+      {page==="pricing"     && <PricingPage     onNav={safNav}/>}
+      {page==="methodology" && <MethodologyPage onNav={safNav}/>}
 
       {/* FOOTER */}
       <footer style={{borderTop:`1px solid ${C.border}`,padding:"36px 48px",background:C.panel}}>
@@ -1109,9 +1195,14 @@ export default function App() {
             <div style={{fontSize:10,color:C.dim}}>Advisory · Gex, France · Quantitative Index Intelligence</div>
             <div style={{fontSize:10,color:C.dim,marginTop:2}}>contact@steelldy.com</div>
           </div>
-          <div style={{fontSize:9,color:C.dim,maxWidth:500,textAlign:"right",lineHeight:1.6}}>
+          <div style={{display:"flex",gap:24,alignItems:"center"}}>
+            {[["home","Home"],["pricing","Pricing"],["methodology","Methodology"],["auth","Sign in"]].map(([p,l])=>(
+              <button key={p} onClick={()=>nav(p)} style={{background:"none",border:"none",color:C.dim,fontSize:10,cursor:"pointer",fontFamily:"'JetBrains Mono',monospace"}}>{l}</button>
+            ))}
+          </div>
+          <div style={{fontSize:9,color:C.dim,maxWidth:340,textAlign:"right",lineHeight:1.6}}>
             Not investment advice · Bloomberg Terminal® is a registered trademark of Bloomberg LP ·<br/>
-            Comparison based on publicly available data as of June 2026 · © 2026 STEELLDY
+            © 2026 STEELLDY Advisory · Gex, France
           </div>
         </div>
       </footer>
