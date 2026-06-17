@@ -9,7 +9,7 @@ const SB_H   = SB_KEY ? { apikey: SB_KEY, Authorization: `Bearer ${SB_KEY}` } : 
 // ─── STRIPE CONFIG ────────────────────────────────────────────────────────────
 const STRIPE_KEY = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || "";
 const STRIPE_LINKS = {
-  analyst:      "https://buy.stripe.com/cNi6oA9iE8Gm0Ij6m0dwc00",
+  analyst:      "https://buy.stripe.com/aFa7sE9iEf4KfDdaD4dwc01",
   professional: "https://buy.stripe.com/bJedR2bqMf4Kez96mOdwc02",
   institution:  "https://buy.stripe.com/cNi14gamI7Ci0Ij12udwc03",
 };
