@@ -9,18 +9,14 @@ const SB_H   = SB_KEY ? { apikey: SB_KEY, Authorization: `Bearer ${SB_KEY}` } : 
 // ─── STRIPE CONFIG ────────────────────────────────────────────────────────────
 const STRIPE_KEY = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || "";
 const STRIPE_LINKS = {
-  analyst:      "https://buy.stripe.com/ANALYST_LINK",
-  professional: "https://buy.stripe.com/PROFESSIONAL_LINK",
-  institution:  "mailto:contact@steelldy.com?subject=Institutional Plan Request",
+  analyst:      "https://buy.stripe.com/cNi6oA9iE8Gm0Ij6m0dwc00",
+  professional: "https://buy.stripe.com/bJedR2bqMf4Kez96mOdwc02",
+  institution:  "https://buy.stripe.com/cNi14gamI7Ci0Ij12udwc03",
 };
 
-const goStripe = async (plan) => {
-  if(!STRIPE_KEY){
-    alert("Stripe non configuré.\nAction requise :\nVercel → Settings → Env Variables\nAjouter : VITE_STRIPE_PUBLISHABLE_KEY");
-    return;
-  }
-  // Redirect to Stripe Payment Link (no backend needed)
-  window.open(STRIPE_LINKS[plan], "_blank");
+const goStripe = (plan) => {
+  const link = STRIPE_LINKS[plan];
+  if(link) window.open(link, "_blank");
 };
 
 
