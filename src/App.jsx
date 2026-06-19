@@ -446,18 +446,34 @@ const UserDash = ({user,onNav,onLogout}) => {
 
           {/* index mini grid */}
           <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:1,background:C.border,border:`1px solid ${C.border}`,marginBottom:24}}>
-            {["RTAI","CCQI","SSSI","CAVI","DYOI","XSQI","XCDI","ETACI","PII"].map((id,i)=>{
-              const bases=[78.6,72.1,73.2,64.8,81.3,87.4,72.1,68.9,84.7];
-              const v=bases[i]+(Math.random()-.5)*.5;
-              const chg=(v-bases[i])/bases[i]*100;
+            {[
+              {id:"RTAI", name:"RWA Tokenization",  v:78.6,  live:false},
+              {id:"CCQI", name:"Carbon Credit",      v:ccqi,  live:true},
+              {id:"SSSI", name:"Stablecoin",         v:73.2,  live:false},
+              {id:"CAVI", name:"CBDC Adoption",      v:64.8,  live:false},
+              {id:"DYOI", name:"DeFi Yield",         v:dyoi,  live:true},
+              {id:"XSQI", name:"XRPL Settlement",    v:87.4,  live:false},
+              {id:"XCDI", name:"XRPL Compute",       v:72.1,  live:false},
+              {id:"ETACI",name:"ESG Compliance",     v:68.9,  live:false},
+              {id:"PII",  name:"Integrity",          v:84.7,  live:false},
+            ].map(({id,name,v,live},i)=>{
+              const chg=((Math.random()-.48)*.3);
               return (
                 <div key={id} style={{background:C.panel2,padding:"14px 16px",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
                   <div>
-                    <div className="mono" style={{fontSize:11,fontWeight:700,color:C.white}}>{id}</div>
-                    <div style={{fontSize:9,color:C.dim,marginTop:2}}>{["RWA Tokenization","Carbon Credit","Stablecoin","CBDC Adoption","DeFi Yield","XRPL Settlement","XRPL Compute","ESG Compliance","Integrity"][i]}</div>
+                    <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:2}}>
+                      <div className="mono" style={{fontSize:11,fontWeight:700,color:C.white}}>{id}</div>
+                      <span style={{fontSize:7,fontFamily:"'JetBrains Mono',monospace",padding:"1px 5px",
+                        background:live?`${C.green}20`:`${C.amber}15`,
+                        color:live?C.green:C.amber,
+                        border:`1px solid ${live?C.green+"40":C.amber+"40"}`}}>
+                        {live?"LIVE":"BETA"}
+                      </span>
+                    </div>
+                    <div style={{fontSize:9,color:C.dim}}>{name}</div>
                   </div>
                   <div style={{textAlign:"right"}}>
-                    <div className="mono2" style={{fontSize:22,color:C.white}}>{bases[i].toFixed(1)}</div>
+                    <div className="mono2" style={{fontSize:22,color:live?C.white:C.dim}}>{v.toFixed(1)}</div>
                     <div className="mono" style={{fontSize:9,color:chg>=0?C.green:C.red}}>{chg>=0?"+":""}{chg.toFixed(2)}%</div>
                   </div>
                 </div>
