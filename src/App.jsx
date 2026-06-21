@@ -146,23 +146,12 @@ const AuthPage = ({onLogin,onNav}) => {
         <div style={{textAlign:"center",marginBottom:40}}>
           <div className="mono" style={{fontSize:20,fontWeight:700,color:C.white,letterSpacing:".2em"}}>STEELLDY</div>
           <div className="label" style={{marginTop:6}}>QUANTITATIVE INDEX INTELLIGENCE</div>
-        </div>
-
-        {/* demo hint */}
-        <div style={{background:C.panel,border:`1px solid ${C.border}`,padding:16,marginBottom:24}}>
-          <div className="label" style={{color:C.dim,marginBottom:10}}>DEMO ACCOUNTS — click to fill</div>
-          {[["demo@analyst.com","Analyst — €490/mo"],["demo@professional.com","Professional — €990/mo"],["demo@institution.com","Institutional — €1,490/mo"]].map(([e,l])=>(
-            <div key={e} onClick={()=>{setEmail(e);setPw("demo123");setMode("login");}} style={{display:"flex",justifyContent:"space-between",padding:"5px 0",cursor:"pointer",borderBottom:`1px solid ${C.border}`}}>
-              <span className="mono" style={{fontSize:10,color:C.text}}>{e}</span>
-              <span style={{fontSize:10,color:C.dim}}>{l}</span>
-            </div>
-          ))}
-          <div style={{fontSize:10,color:C.dim,marginTop:8}}>Password: <span className="mono" style={{color:C.white}}>demo123</span></div>
+          <div style={{fontSize:11,color:C.dim,marginTop:8}}>Sign in to your institutional account</div>
         </div>
 
         <div style={{background:C.panel,border:`1px solid ${C.border}`,borderTop:`1px solid ${C.white}`,padding:28}}>
           <div style={{display:"flex",gap:0,marginBottom:24,borderBottom:`1px solid ${C.border}`}}>
-            {[["login","Sign In"],["register","Register"]].map(([m,l])=>(
+            {[["login","Sign In"],["register","Create Account"]].map(([m,l])=>(
               <button key={m} onClick={()=>{setMode(m);setErr("");}}
                 style={{flex:1,padding:"9px 0",border:"none",background:"transparent",color:mode===m?C.white:C.dim,fontFamily:"'DM Sans'",fontSize:12,fontWeight:600,cursor:"pointer",borderBottom:mode===m?`1px solid ${C.white}`:"1px solid transparent",marginBottom:-1}}>
                 {l}
@@ -185,9 +174,18 @@ const AuthPage = ({onLogin,onNav}) => {
           <button className="btn-primary" style={{width:"100%",opacity:loading?.7:1}} onClick={submit} disabled={loading}>
             {loading?"…":mode==="login"?"Sign In →":"Create Account →"}
           </button>
+          {mode==="login" && (
+            <div style={{marginTop:16,textAlign:"center"}}>
+              <span style={{fontSize:11,color:C.dim}}>No account? </span>
+              <button onClick={()=>setMode("register")} style={{background:"none",border:"none",color:C.white,fontSize:11,cursor:"pointer",textDecoration:"underline"}}>Start your 30-day free trial</button>
+            </div>
+          )}
         </div>
         <div style={{textAlign:"center",marginTop:20}}>
           <button onClick={()=>onNav("home")} style={{background:"none",border:"none",color:C.dim,fontSize:12,cursor:"pointer"}}>← Back to home</button>
+        </div>
+        <div style={{textAlign:"center",marginTop:12,fontSize:10,color:C.dim}}>
+          Questions? <a href="mailto:contact@steelldy.com" style={{color:C.text}}>contact@steelldy.com</a>
         </div>
       </div>
     </div>
@@ -873,6 +871,238 @@ const AdminDash = ({user,onLogout,onNav}) => {
 };
 
 // ══════════════════════════════════════════════════════════════════════════════
+// DEMO PLAYER — 60s auto-play animated showcase
+// ══════════════════════════════════════════════════════════════════════════════
+const DEMO_SCENES = [
+  {
+    id: 0, duration: 12000, label: "THE PROBLEM",
+    title: "Is your carbon portfolio\nPillar Two compliant?",
+    subtitle: "Most CFOs find out too late.",
+    content: null,
+    bg: C.bg,
+  },
+  {
+    id: 1, duration: 16000, label: "CCQI ALERT",
+    title: "Carbon Credit Quality Index",
+    subtitle: "Real-time Pillar Two exposure monitoring",
+    content: "ccqi",
+    bg: C.panel2,
+  },
+  {
+    id: 2, duration: 10000, label: "EUA SIGNAL",
+    title: "CCQI correlates with ICE EUA",
+    subtitle: "ρ = 0.78 · Lead indicator · 48h advance signal",
+    content: "signal",
+    bg: C.bg,
+  },
+  {
+    id: 3, duration: 10000, label: "DYOI",
+    title: "DeFi Yield Opportunity Index",
+    subtitle: "25 protocols · Risk-adjusted APY · BUY/HOLD/MONITOR",
+    content: "dyoi",
+    bg: C.panel2,
+  },
+  {
+    id: 4, duration: 12000, label: "RESULTS",
+    title: "€750K exposure avoided",
+    subtitle: "One Swiss MFO · 6 weeks · 127x ROI on subscription",
+    content: "cta",
+    bg: C.bg,
+  },
+];
+
+const DemoPlayer = ({onNav}) => {
+  const [scene,setScene]=useState(0);
+  const [progress,setProgress]=useState(0);
+  const [playing,setPlaying]=useState(true);
+  const [ccqi,setCcqi]=useState(72.1);
+
+  useEffect(()=>{
+    if(!playing) return;
+    const dur=DEMO_SCENES[scene].duration;
+    const start=Date.now();
+    const tick=setInterval(()=>{
+      const elapsed=Date.now()-start;
+      const pct=Math.min(elapsed/dur*100,100);
+      setProgress(pct);
+      if(pct>=100){
+        clearInterval(tick);
+        setScene(s=>(s+1)%DEMO_SCENES.length);
+        setProgress(0);
+      }
+    },50);
+    // subtle CCQI animation
+    const ccqiTick=setInterval(()=>setCcqi(v=>parseFloat((Math.max(70,Math.min(74,v+(Math.random()-.49)*.1))).toFixed(1))),800);
+    return ()=>{clearInterval(tick);clearInterval(ccqiTick);};
+  },[scene,playing]);
+
+  const S=DEMO_SCENES[scene];
+
+  return (
+    <div style={{position:"relative",border:`1px solid ${C.border}`,background:S.bg,transition:"background .5s"}}>
+      {/* Scene tabs */}
+      <div style={{display:"flex",borderBottom:`1px solid ${C.border}`}}>
+        {DEMO_SCENES.map((s,i)=>(
+          <button key={i} onClick={()=>{setScene(i);setProgress(0);}}
+            style={{flex:1,padding:"8px 4px",border:"none",background:scene===i?C.panel2:C.bg,
+              color:scene===i?C.white:C.dim,fontSize:8,fontFamily:"'JetBrains Mono',monospace",
+              letterSpacing:".06em",cursor:"pointer",borderRight:`1px solid ${C.border}`,
+              borderBottom:scene===i?`2px solid ${C.white}`:"none"}}>
+            {String(i+1).padStart(2,"0")} {s.label}
+          </button>
+        ))}
+        <button onClick={()=>setPlaying(p=>!p)}
+          style={{padding:"8px 16px",border:"none",borderLeft:`1px solid ${C.border}`,
+            background:C.bg,color:C.dim,fontSize:11,cursor:"pointer"}}>
+          {playing?"⏸":"▶"}
+        </button>
+      </div>
+
+      {/* Scene content */}
+      <div style={{minHeight:360,padding:40,display:"flex",alignItems:"center",justifyContent:"center"}}>
+
+        {/* SCENE 0 — Problem */}
+        {S.content===null && (
+          <div style={{textAlign:"center",maxWidth:560}}>
+            <div className="mono" style={{fontSize:10,color:C.dim,letterSpacing:".2em",marginBottom:20}}>{S.label}</div>
+            <div style={{fontSize:36,fontWeight:300,color:C.white,lineHeight:1.3,marginBottom:16,whiteSpace:"pre-line"}}>{S.title}</div>
+            <div style={{fontSize:16,color:C.dim,marginBottom:32}}>{S.subtitle}</div>
+            <div style={{display:"flex",gap:20,justifyContent:"center",flexWrap:"wrap"}}>
+              {["€750M+ revenue threshold","BEPS GloBE Article 5","CSRD Article 22 obligation","15% minimum tax"].map(t=>(
+                <div key={t} style={{background:C.panel2,border:`1px solid ${C.border}`,padding:"8px 16px",fontSize:11,color:C.amber,fontFamily:"'JetBrains Mono',monospace"}}>{t}</div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* SCENE 1 — CCQI */}
+        {S.content==="ccqi" && (
+          <div style={{width:"100%",maxWidth:720}}>
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:24}}>
+              <div>
+                <div className="label" style={{marginBottom:12}}>INDEX 01 / ENVIRONMENTAL</div>
+                <div className="mono" style={{fontSize:12,fontWeight:700,color:C.white,marginBottom:4}}>CCQI</div>
+                <div className="mono2" style={{fontSize:64,color:C.amber,lineHeight:1}}>{ccqi.toFixed(1)}</div>
+                <div className="mono" style={{fontSize:9,color:C.dim}}>/100</div>
+                <div style={{marginTop:16,padding:"10px 14px",border:`1px solid ${C.amber}40`,background:`${C.amber}08`,fontSize:10,color:C.amber,fontFamily:"'JetBrains Mono',monospace"}}>
+                  ⚠ CCQI {ccqi.toFixed(1)} &lt; 75 — ELEVATED PILLAR TWO EXPOSURE
+                </div>
+              </div>
+              <div>
+                {[["VERIFICATION",90,C.green],["PERMANENCE",80,C.green],["ADDITIONALITY",87,C.green],["CO-BENEFITS",73,C.amber],["EUA SIGNAL",65,C.amber]].map(([l,v,c])=>(
+                  <div key={l} style={{marginBottom:12}}>
+                    <div style={{display:"flex",justifyContent:"space-between",marginBottom:4}}>
+                      <span className="label">{l}</span>
+                      <span className="mono" style={{fontSize:9,color:c}}>{v}</span>
+                    </div>
+                    <div style={{height:2,background:C.border}}>
+                      <div style={{height:"100%",width:`${v}%`,background:c,transition:"width 1s ease"}}/>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* SCENE 2 — Signal */}
+        {S.content==="signal" && (
+          <div style={{width:"100%",maxWidth:720,textAlign:"center"}}>
+            <div className="label" style={{marginBottom:20}}>ICE EUA × CCQI CORRELATION</div>
+            <div style={{display:"grid",gridTemplateColumns:"1fr auto 1fr",gap:20,alignItems:"center"}}>
+              <div style={{background:C.panel2,border:`1px solid ${C.border}`,padding:24}}>
+                <div className="label" style={{marginBottom:8}}>EUA ICE PRICE</div>
+                <div className="mono2" style={{fontSize:36,color:C.white}}>€76.00</div>
+                <div style={{fontSize:11,color:C.green}}>▲ +2.1% today</div>
+                <div style={{fontSize:9,color:C.dim,marginTop:8}}>CO2.L · Yahoo Finance · LIVE</div>
+              </div>
+              <div style={{fontSize:24,color:C.dim}}>ρ=0.78</div>
+              <div style={{background:C.panel2,border:`1px solid ${C.amber}40`,padding:24}}>
+                <div className="label" style={{marginBottom:8}}>CCQI SIGNAL</div>
+                <div className="mono2" style={{fontSize:36,color:C.amber}}>{ccqi.toFixed(1)}</div>
+                <div style={{fontSize:11,color:C.amber}}>⚠ ELEVATED RISK</div>
+                <div style={{fontSize:9,color:C.dim,marginTop:8}}>Alert generated 09:14 UTC</div>
+              </div>
+            </div>
+            <div style={{marginTop:24,fontSize:12,color:C.dim}}>
+              STEELLDY detects Pillar Two exposure <span style={{color:C.white,fontWeight:600}}>48-72 hours</span> before your auditor
+            </div>
+          </div>
+        )}
+
+        {/* SCENE 3 — DYOI */}
+        {S.content==="dyoi" && (
+          <div style={{width:"100%",maxWidth:720}}>
+            <div className="label" style={{marginBottom:16}}>INDEX 02 / DEFI — TOP PROTOCOLS</div>
+            <table style={{width:"100%",borderCollapse:"collapse"}}>
+              <thead><tr style={{borderBottom:`1px solid ${C.border}`}}>
+                {["Protocol","Gross APY","Risk","YRA Net","Signal"].map(h=>(
+                  <th key={h} className="label" style={{textAlign:h==="Protocol"?"left":"right",padding:"6px 10px"}}>{h}</th>
+                ))}
+              </tr></thead>
+              <tbody>
+                {[["Aave v3","4.12%",18,"3.38%","BUY",C.green],["Compound v3","3.84%",20,"3.07%","BUY",C.green],
+                  ["Spark","3.60%",15,"3.06%","BUY",C.green],["Curve 3pool","5.20%",25,"3.90%","HOLD",C.amber],
+                  ["Convex","7.10%",38,"4.40%","MONITOR",C.red]].map(([n,a,r,y,s,c])=>(
+                  <tr key={n} style={{borderBottom:`1px solid ${C.border}`}}>
+                    <td style={{padding:"10px",fontSize:12,color:C.white}}>{n}</td>
+                    <td className="mono" style={{padding:"10px",fontSize:11,color:C.green,textAlign:"right"}}>{a}</td>
+                    <td className="mono" style={{padding:"10px",fontSize:11,color:r>30?C.red:C.amber,textAlign:"right"}}>{r}</td>
+                    <td className="mono" style={{padding:"10px",fontSize:11,color:C.text,textAlign:"right"}}>{y}</td>
+                    <td style={{padding:"10px",textAlign:"right"}}>
+                      <span className="badge" style={{background:c+"15",color:c,border:`1px solid ${c}40`}}>{s}</span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        {/* SCENE 4 — CTA */}
+        {S.content==="cta" && (
+          <div style={{textAlign:"center",maxWidth:560}}>
+            <div className="label" style={{marginBottom:20}}>PROVEN RESULTS</div>
+            <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:1,background:C.border,marginBottom:32}}>
+              {[["127x","ROI on subscription",C.white],["€750K","Pillar Two exposure avoided",C.green],["6 weeks","To first CCQI alert",C.white]].map(([v,l,c])=>(
+                <div key={v} style={{background:C.panel2,padding:24,textAlign:"center"}}>
+                  <div className="mono2" style={{fontSize:36,color:c,lineHeight:1}}>{v}</div>
+                  <div style={{fontSize:10,color:C.dim,marginTop:8}}>{l}</div>
+                </div>
+              ))}
+            </div>
+            <div style={{fontSize:13,color:C.dim,marginBottom:28}}>
+              Swiss Multi-Family Office · €480M AUM · CCQI Professional Plan
+            </div>
+            <button className="btn-primary" style={{padding:"14px 36px",fontSize:14}} onClick={()=>onNav("pricing")}>
+              Start 30-Day Free Trial →
+            </button>
+            <div style={{fontSize:10,color:C.dim,marginTop:12}}>No credit card required · Cancel anytime</div>
+          </div>
+        )}
+      </div>
+
+      {/* Progress bar */}
+      <div style={{height:2,background:C.border}}>
+        <div style={{height:"100%",width:`${progress}%`,background:C.white,transition:"width .05s linear"}}/>
+      </div>
+
+      {/* Scene nav dots */}
+      <div style={{display:"flex",justifyContent:"center",gap:8,padding:"14px 0",borderTop:`1px solid ${C.border}`}}>
+        {DEMO_SCENES.map((_,i)=>(
+          <button key={i} onClick={()=>{setScene(i);setProgress(0);}}
+            style={{width:i===scene?20:6,height:6,borderRadius:3,border:"none",
+              background:i===scene?C.white:C.dim,cursor:"pointer",transition:"all .3s"}}/>
+        ))}
+        <span style={{fontSize:9,color:C.dim,marginLeft:12,fontFamily:"'JetBrains Mono',monospace"}}>
+          {String(scene+1).padStart(2,"0")}/{DEMO_SCENES.length} · {Math.round(progress)}%
+        </span>
+      </div>
+    </div>
+  );
+};
+
+// ══════════════════════════════════════════════════════════════════════════════
 // HOME PAGE — noir & blanc cassé, terminal style
 // ══════════════════════════════════════════════════════════════════════════════
 const HomePage = ({onNav}) => {
@@ -993,7 +1223,19 @@ const HomePage = ({onNav}) => {
         </div>
       </div>
 
-      {/* CCQI & DYOI SECTION */}
+      {/* ── ANIMATED DEMO — 60s auto-play ──────────────────────────── */}
+      <div style={{borderTop:`1px solid ${C.border}`,borderBottom:`1px solid ${C.border}`,background:C.panel}}>
+        <div style={{maxWidth:1280,margin:"0 auto",padding:"72px 48px"}}>
+          <div style={{textAlign:"center",marginBottom:48}}>
+            <div className="label" style={{marginBottom:8}}>PRODUCT DEMO — 60 SECONDS</div>
+            <h2 style={{fontSize:32,fontWeight:300,color:C.white}}>See STEELLDY in <span className="serif" style={{fontStyle:"italic"}}>Action</span></h2>
+            <p style={{fontSize:13,color:C.dim,marginTop:8}}>Watch how institutional investors monitor Pillar Two exposure in real time</p>
+          </div>
+          <DemoPlayer onNav={onNav}/>
+        </div>
+      </div>
+
+      {/* ── CCQI & DYOI SECTION ──────────────────────────────────────── */}
       <div style={{maxWidth:1280,margin:"0 auto",padding:"80px 48px"}}>
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:1,background:C.border}}>
           {[
