@@ -838,7 +838,7 @@ const AdminDash = ({user,onLogout,onNav}) => {
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:24}}>
             <div style={{background:C.panel2,border:`1px solid ${C.border}`,padding:24}}>
               <div className="label" style={{marginBottom:14}}>SEO CHECKLIST</div>
-              {[["sitemap.xml",C.green,"✓"],["robots.txt",C.green,"✓"],["Meta OG Tags",C.green,"✓"],["JSON-LD Structured Data",C.green,"✓"],["Google Search Console",C.amber,"Pending"],["Core Web Vitals LCP",C.green,"< 2.5s"],["VITE_STRIPE_PUBLISHABLE_KEY",C.red,"⚠ Missing"]].map(([l,c,v])=>(
+              {[["sitemap.xml",C.green,"✓"],["robots.txt",C.green,"✓"],["Meta OG Tags",C.green,"✓"],["JSON-LD Structured Data",C.green,"✓"],["Google Search Console",C.green,"Active"],["Core Web Vitals LCP",C.green,"< 2.5s"],["VITE_STRIPE_PUBLISHABLE_KEY",C.green,"✓ Configured"]].map(([l,c,v])=>(
                 <div key={l} style={{display:"flex",justifyContent:"space-between",padding:"8px 0",borderBottom:`1px solid ${C.border}`}}>
                   <span style={{fontSize:12,color:C.text}}>{l}</span>
                   <span className="mono" style={{fontSize:10,color:c}}>{v}</span>
@@ -857,7 +857,7 @@ const AdminDash = ({user,onLogout,onNav}) => {
               </div>
               <div style={{background:C.panel2,border:`1px solid ${C.border}`,borderLeft:`2px solid ${C.red}`,padding:20}}>
                 <div className="label" style={{color:C.red,marginBottom:10}}>⚠ REQUIRED ACTIONS</div>
-                {["Configure VITE_STRIPE_PUBLISHABLE_KEY in Vercel","Version-control JSX source in Git","Complete third-party audit for IOSCO BMR"].map((a,i)=>(
+                {["Complete third-party audit for IOSCO BMR — Scheduled Q4 2026","Upgrade 7 BETA indices to paid data sources (after first revenue)","Enable Web Analytics in Vercel dashboard"].map((a,i)=>(
                   <div key={i} style={{fontSize:11,color:C.amber,padding:"5px 0",borderBottom:`1px solid ${C.border}`}}>⚠ {a}</div>
                 ))}
               </div>
