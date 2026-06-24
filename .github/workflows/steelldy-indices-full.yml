@@ -2,8 +2,8 @@ name: STEELLDY Full Index Suite
 
 on:
   schedule:
-    - cron: '0 * * * *'   # Every hour Ã¢â‚¬â€ CCQI + DYOI + market_data
-    - cron: '30 * * * *'  # Every hour +30min Ã¢â‚¬â€ 7 free indices
+    - cron: '0 * * * *'
+    - cron: '30 * * * *'
   workflow_dispatch:
 
 env:
@@ -11,7 +11,6 @@ env:
   SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
 
 jobs:
-  # Ã¢â€â‚¬Ã¢â€â‚¬ JOB 1 : CCQI + DYOI + market data (existing) Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
   core-indices:
     runs-on: ubuntu-latest
     steps:
@@ -23,16 +22,13 @@ jobs:
         run: python scripts/steelldy_ccqi.py
       - name: Run DYOI
         run: python scripts/steelldy_dyoi.py
-      - name: Run market data
-        run: python scripts/steelldy_market_data.py
 
-  # Ã¢â€â‚¬Ã¢â€â‚¬ JOB 2 : 7 Free Source Indices Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
   free-indices:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with: { python-version: '3.11' }
-      - run: pip install requests supabase
-      - name: Run 7 Free Indices (XCDI, XSQI, SSSI, CAVI, RTAI, ETACI, PII)
+      - run: pip install requests supabase python-dotenv
+      - name: Run 7 Free Indices
         run: python scripts/steelldy_free_indices.py
