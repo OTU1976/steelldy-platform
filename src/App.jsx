@@ -267,12 +267,10 @@ const UserDash = ({user,onNav,onLogout}) => {
     {name:"Balancer",apy:4.90,risk:27,score:75},{name:"Pendle",apy:8.20,risk:42,score:65},
   ];
   const REPORTS=[
-    {title:"CCQI Monthly Report — June 2026",date:"2026-06-01",tier:"analyst",size:"2.4 MB"},
-    {title:"DYOI Protocol Analysis Q2 2026",date:"2026-06-01",tier:"professional",size:"4.1 MB"},
-    {title:"CSRD/Pillar Two Compliance Brief",date:"2026-05-15",tier:"analyst",size:"1.8 MB"},
-    {title:"STEELLDY Quant Methodology v4.0",date:"2026-05-01",tier:"analyst",size:"5.2 MB"},
-    {title:"Full Index Suite — API Docs v2",date:"2026-04-20",tier:"professional",size:"3.0 MB"},
-    {title:"Institutional Onboarding Pack",date:"2026-04-01",tier:"institution",size:"8.5 MB"},
+    {title:"CCQI Monthly Report — June 2026",  date:"2026-06-01",tier:"analyst",     size:"2.4 MB", action:"generate", id:"ccqi"},
+    {title:"DYOI Protocol Analysis Q2 2026",   date:"2026-06-01",tier:"professional", size:"4.1 MB", action:"generate", id:"dyoi"},
+    {title:"CSRD/Pillar Two Compliance Brief", date:"2026-05-15",tier:"analyst",     size:"1.8 MB", action:"email"},
+    {title:"Institutional Onboarding Pack",    date:"2026-04-01",tier:"institution", size:"8.5 MB", action:"email"},
   ];
   const tierN={analyst:0,professional:1,institution:2,admin:3};
   const canDl=t=>tierN[user.role]>=tierN[t];
@@ -679,33 +677,44 @@ const UserDash = ({user,onNav,onLogout}) => {
 
           {/* STATIC REPORTS */}
           <div>
-            <div className="label" style={{marginBottom:8,color:C.dim}}>STATIC DOCUMENTS — Request by email</div>
-            {REPORTS.map((r,i)=>{
+            <div className="label" style={{marginBottom:8,color:C.dim}}>STATIC DOCUMENTS</div>
+            {REPORTS.filter(r=>r.action==="email").map((r,i)=>{
               const ok=canDl(r.tier);
-              const docType = r.title.includes("Methodology") ? "methodology" :
-                              r.title.includes("API") ? "api" :
-                              r.title.includes("Onboarding") ? "onboarding" :
-                              r.title.includes("DYOI") ? "dyoi" : "ccqi";
-              const emailSubject = encodeURIComponent(`Document Request: ${r.title}`);
-              const emailBody = encodeURIComponent(`Hello,\n\nI am a ${user.tier} subscriber and would like to receive:\n${r.title}\n\nMy account: ${user.email||user.name}\n\nThank you,\n${user.name}`);
-              return <div key={i} style={{background:C.panel2,border:`1px solid ${C.border}`,borderBottom:"none",padding:"14px 20px",display:"flex",justifyContent:"space-between",alignItems:"center",opacity:ok?1:.5}}>
+              const subject=encodeURIComponent(`Document Request: ${r.title} — ${user.name}`);
+              const body=encodeURIComponent(`Hello STEELLDY team,\n\nI am a ${user.tier} subscriber and would like to receive the following document:\n\n📄 ${r.title}\n\nSubscriber: ${user.name}\nPlan: ${user.tier} (${user.plan})\n\nThank you.`);
+              // Gmail URL works even without email client installed
+              const gmailUrl=`https://mail.google.com/mail/?view=cm&to=contact@steelldy.com&su=${subject}&body=${body}`;
+              return <div key={i} style={{background:C.panel2,border:`1px solid ${C.border}`,borderBottom:"none",padding:"16px 20px",display:"flex",justifyContent:"space-between",alignItems:"center",opacity:ok?1:.5}}>
                 <div>
                   <div style={{fontSize:12,color:C.white,fontWeight:500}}>{r.title}</div>
                   <div className="mono" style={{fontSize:9,color:C.dim,marginTop:3}}>{r.date} · {r.size} · MIN: {r.tier.toUpperCase()}</div>
-                  {ok && <div style={{fontSize:9,color:C.dim,marginTop:2}}>Click to request via email · Delivered within 24h</div>}
+                  {ok && <div style={{fontSize:9,color:C.dim,marginTop:3}}>Sent to your email within 24h</div>}
                 </div>
                 {ok
-                  ? <button className="btn-ghost" style={{padding:"6px 14px",fontSize:11}}
-                      onClick={()=>window.location.href=`mailto:contact@steelldy.com?subject=${emailSubject}&body=${emailBody}`}>
-                      ✉ Request
+                  ? <button className="btn-ghost" style={{padding:"7px 16px",fontSize:11}}
+                      onClick={()=>window.open(gmailUrl,"_blank")}>
+                      ✉ Request via Gmail
                     </button>
-                  : <button className="btn-ghost" style={{padding:"6px 14px",fontSize:11,opacity:.4}}
-                      onClick={()=>onNav("pricing")}>🔒</button>
+                  : <button className="btn-ghost" style={{padding:"7px 16px",fontSize:11,opacity:.4}}
+                      onClick={()=>onNav("pricing")}>🔒 Upgrade</button>
                 }
               </div>;
             })}
-            <div style={{border:`1px solid ${C.border}`,borderTop:"none",padding:"10px 20px",background:C.panel2}}>
-              <div style={{fontSize:9,color:C.dim}}>📧 Documents are prepared and sent manually to verified subscribers · contact@steelldy.com</div>
+            <div style={{border:`1px solid ${C.border}`,borderTop:"none",padding:"12px 20px",background:C.panel2}}>
+              <div style={{fontSize:9,color:C.dim}}>📧 Documents sent manually to verified subscribers within 24h · contact@steelldy.com</div>
+            </div>
+
+            {/* Methodology link */}
+            <div style={{background:C.panel2,border:`1px solid ${C.border}`,borderTop:"none",padding:"16px 20px",display:"flex",justifyContent:"space-between",alignItems:"center",marginTop:1}}>
+              <div>
+                <div style={{fontSize:12,color:C.white,fontWeight:500}}>STEELLDY Quant Methodology</div>
+                <div className="mono" style={{fontSize:9,color:C.dim,marginTop:3}}>2026-06-17 · Online · MIN: ANALYST</div>
+                <div style={{fontSize:9,color:C.dim,marginTop:3}}>CCQI + DYOI formulas, IOSCO compliance, data sources</div>
+              </div>
+              <button className="btn-ghost" style={{padding:"7px 16px",fontSize:11}}
+                onClick={()=>onNav("methodology")}>
+                → View Online
+              </button>
             </div>
           </div>
         </div>}
