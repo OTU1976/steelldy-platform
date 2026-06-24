@@ -2,8 +2,8 @@ name: STEELLDY Full Index Suite
 
 on:
   schedule:
-    - cron: '0 * * * *'   # Every hour â€” CCQI + DYOI + market_data
-    - cron: '30 * * * *'  # Every hour +30min â€” 7 free indices
+    - cron: '0 * * * *'   # Every hour Ã¢â‚¬â€ CCQI + DYOI + market_data
+    - cron: '30 * * * *'  # Every hour +30min Ã¢â‚¬â€ 7 free indices
   workflow_dispatch:
 
 env:
@@ -11,7 +11,7 @@ env:
   SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
 
 jobs:
-  # â”€â”€ JOB 1 : CCQI + DYOI + market data (existing) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  # Ã¢â€â‚¬Ã¢â€â‚¬ JOB 1 : CCQI + DYOI + market data (existing) Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
   core-indices:
     runs-on: ubuntu-latest
     steps:
@@ -26,7 +26,7 @@ jobs:
       - name: Run market data
         run: python scripts/steelldy_market_data.py
 
-  # â”€â”€ JOB 2 : 7 Free Source Indices â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  # Ã¢â€â‚¬Ã¢â€â‚¬ JOB 2 : 7 Free Source Indices Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
   free-indices:
     runs-on: ubuntu-latest
     steps:
