@@ -519,7 +519,7 @@ const UserDash = ({user,onNav,onLogout}) => {
             <div style={{background:C.panel2,border:`1px solid ${C.border}`,padding:20,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
               <div>
                 <div style={{fontSize:13,color:C.white,fontWeight:600,marginBottom:4}}>Upgrade to Professional</div>
-                <div style={{fontSize:11,color:C.dim}}>Access real-time DYOI, Polymarket oracle, VPIN alerts and API feed.</div>
+                <div style={{fontSize:11,color:C.dim}}>Access real-time DYOI feed, EUA lead signal, API access and PDF reports on demand.</div>
               </div>
               <button className="btn-primary" style={{padding:"9px 20px",fontSize:11,whiteSpace:"nowrap"}} onClick={()=>onNav("pricing")}>View Plans →</button>
             </div>
@@ -679,23 +679,34 @@ const UserDash = ({user,onNav,onLogout}) => {
 
           {/* STATIC REPORTS */}
           <div>
-            <div className="label" style={{marginBottom:8,color:C.dim}}>STATIC DOCUMENTS</div>
+            <div className="label" style={{marginBottom:8,color:C.dim}}>STATIC DOCUMENTS — Request by email</div>
             {REPORTS.map((r,i)=>{
               const ok=canDl(r.tier);
+              const docType = r.title.includes("Methodology") ? "methodology" :
+                              r.title.includes("API") ? "api" :
+                              r.title.includes("Onboarding") ? "onboarding" :
+                              r.title.includes("DYOI") ? "dyoi" : "ccqi";
+              const emailSubject = encodeURIComponent(`Document Request: ${r.title}`);
+              const emailBody = encodeURIComponent(`Hello,\n\nI am a ${user.tier} subscriber and would like to receive:\n${r.title}\n\nMy account: ${user.email||user.name}\n\nThank you,\n${user.name}`);
               return <div key={i} style={{background:C.panel2,border:`1px solid ${C.border}`,borderBottom:"none",padding:"14px 20px",display:"flex",justifyContent:"space-between",alignItems:"center",opacity:ok?1:.5}}>
                 <div>
                   <div style={{fontSize:12,color:C.white,fontWeight:500}}>{r.title}</div>
                   <div className="mono" style={{fontSize:9,color:C.dim,marginTop:3}}>{r.date} · {r.size} · MIN: {r.tier.toUpperCase()}</div>
+                  {ok && <div style={{fontSize:9,color:C.dim,marginTop:2}}>Click to request via email · Delivered within 24h</div>}
                 </div>
                 {ok
                   ? <button className="btn-ghost" style={{padding:"6px 14px",fontSize:11}}
-                      onClick={()=>generatePDF("ccqi", r.title)}>↓ PDF</button>
+                      onClick={()=>window.location.href=`mailto:contact@steelldy.com?subject=${emailSubject}&body=${emailBody}`}>
+                      ✉ Request
+                    </button>
                   : <button className="btn-ghost" style={{padding:"6px 14px",fontSize:11,opacity:.4}}
                       onClick={()=>onNav("pricing")}>🔒</button>
                 }
               </div>;
             })}
-            <div style={{border:`1px solid ${C.border}`,borderTop:"none",height:1}}/>
+            <div style={{border:`1px solid ${C.border}`,borderTop:"none",padding:"10px 20px",background:C.panel2}}>
+              <div style={{fontSize:9,color:C.dim}}>📧 Documents are prepared and sent manually to verified subscribers · contact@steelldy.com</div>
+            </div>
           </div>
         </div>}
 
@@ -1330,7 +1341,7 @@ const PricingPage = ({onNav}) => (
           locked:["Real-time data","API access","Reports download"]},
         {tier:"PROFESSIONAL",  price:"€990",  cta:"Start Free Trial",  action:()=>goStripe("professional"), featured:true,
           desc:"Real-time intelligence for crypto desks, hedge funds, and asset managers.",
-          features:["Everything in Analyst","Real-time CCQI & DYOI feed","CSRD/Pillar Two alerts","Oracle Polymarket + Kalshi","VPIN & Dark Pool alerts","1 user + 1 API seat","Priority support"],
+          features:["Everything in Analyst","Real-time CCQI & DYOI feed","CSRD/Pillar Two alerts","EUA ICE lead signal (ρ=0.78)","1 user + 1 API seat","Priority support 24h","PDF reports on demand"],
           locked:[]},
         {tier:"INSTITUTIONAL", price:"€1,490",cta:"Contact Sales",     action:()=>goStripe("institution"),  featured:false,
           desc:"Full platform access for sovereign funds, family offices, and institutional desks.",
