@@ -19,11 +19,11 @@ const handleStripe = (key) => {
 
 // ─── PALETTE ─────────────────────────────────────────────────────────────────
 const C = {
-  bg:"#030711", panel:"#060c18", panel2:"#0a1020", border:"#111d35", borderB:"#1a2d48",
-  gold:"#c8973a", goldL:"#e8b44a", goldD:"#8a6420", blue:"#1d6fa4", blueL:"#2a8fd4",
+  bg:"#030711", panel:"#060c18", panel2:"#0a1020", border:"#1a2535", borderB:"#243548",
+  gold:"#FFFFFF", goldL:"#FFFFFF", goldD:"#AAAAAA", blue:"#1d6fa4", blueL:"#2a8fd4",
   cyan:"#0dc9d4", teal:"#0a8a8a", green:"#17c96a", red:"#e34a4a", amber:"#f0a030",
-  purple:"#8b5cf6", pink:"#ec4899", orange:"#f97316", text:"#c4cdd8", dim:"#4a5870",
-  white:"#eef2f8", jsblue:"#0a7090", brics:"#c84a17",
+  purple:"#8b5cf6", pink:"#ec4899", orange:"#f97316", text:"#FFFFFF", dim:"#7A8FA8",
+  white:"#FFFFFF", jsblue:"#0a7090", brics:"#c84a17",
 };
 
 // ─── CSS ─────────────────────────────────────────────────────────────────────
