@@ -1,1541 +1,1138 @@
-import { useState, useEffect } from "react";
-import { AreaChart, Area, ResponsiveContainer } from "recharts";
+import { useState, useEffect, useRef } from "react";
+import { AreaChart, Area, LineChart, Line, ResponsiveContainer, ReferenceLine } from "recharts";
 
-// ─── SUPABASE ────────────────────────────────────────────────────────────────
+// ─── SUPABASE CONFIG ──────────────────────────────────────────────────────────
 const SB_URL = import.meta.env.VITE_SUPABASE_URL || "";
 const SB_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || "";
-const SB_H   = SB_KEY ? { apikey: SB_KEY, Authorization: `Bearer ${SB_KEY}` } : null;
+const SB_HEADERS = SB_KEY ? { apikey: SB_KEY, Authorization: `Bearer ${SB_KEY}` } : null;
 
-// ─── STRIPE CONFIG ────────────────────────────────────────────────────────────
-const STRIPE_KEY = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || "";
+// ─── STRIPE LINKS — Prix réels ────────────────────────────────────────────────
 const STRIPE_LINKS = {
-  analyst:      "https://buy.stripe.com/aFa7sE9iEf4KfDdaD4dwc01",
-  professional: "https://buy.stripe.com/bJedR2bqMf4Kez96mOdwc02",
-  institution:  "https://buy.stripe.com/cNi14gamI7Ci0Ij12udwc03",
+  analyst:       "https://buy.stripe.com/ANALYST_LINK",
+  professional:  "https://buy.stripe.com/PROFESSIONAL_LINK",
+  institutional: "mailto:helen@steelldy.com?subject=Institutional%20Plan%20-%20STEELLDY",
+};
+const handleStripe = (key) => {
+  if (key === "institutional") { window.location.href = STRIPE_LINKS.institutional; }
+  else { window.open(STRIPE_LINKS[key], "_blank"); }
 };
 
-const goStripe = (plan) => {
-  const link = STRIPE_LINKS[plan];
-  if(link) window.open(link, "_blank");
-};
-
-
-const DEMO_USERS = [
-  { email:"demo@analyst.com",      password:"demo123",   role:"analyst",      name:"Alex Chen",      tier:"Analyst",       plan:"€490/mo" },
-  { email:"demo@professional.com", password:"demo123",   role:"professional", name:"Sophie Laurent", tier:"Professional",  plan:"€990/mo" },
-  { email:"demo@institution.com",  password:"demo123",   role:"institution",  name:"Marcus Bauer",   tier:"Institutional", plan:"€1,490/mo" },
-  { email:"admin@steelldy.com",    password:"admin2026!", role:"admin",       name:"Helen Admin",    tier:"Admin",         plan:"Internal" },
-];
-const SK = "steelldy_session";
-const getSession  = () => { try { return JSON.parse(localStorage.getItem(SK)); } catch { return null; } };
-const setSession  = u  => localStorage.setItem(SK, JSON.stringify(u));
-const clearSession = () => localStorage.removeItem(SK);
-const loginUser   = (e,p) => DEMO_USERS.find(u => u.email===e && u.password===p) || null;
-
-// ─── PALETTE — noir & blanc cassé ────────────────────────────────────────────
+// ─── PALETTE ─────────────────────────────────────────────────────────────────
 const C = {
-  bg:     "#080808",
-  panel:  "#0f0f0f",
-  panel2: "#141414",
-  border: "#1e1e1e",
-  borderB:"#2a2a2a",
-  white:  "#f0ede8",   // blanc cassé / ivoire
-  dim:    "#5a5a5a",
-  dim2:   "#3a3a3a",
-  green:  "#17c96a",
-  red:    "#e34a4a",
-  amber:  "#f0a030",
-  text:   "#c8c4be",
+  bg:"#030711", panel:"#060c18", panel2:"#0a1020", border:"#111d35", borderB:"#1a2d48",
+  gold:"#c8973a", goldL:"#e8b44a", goldD:"#8a6420", blue:"#1d6fa4", blueL:"#2a8fd4",
+  cyan:"#0dc9d4", teal:"#0a8a8a", green:"#17c96a", red:"#e34a4a", amber:"#f0a030",
+  purple:"#8b5cf6", pink:"#ec4899", orange:"#f97316", text:"#c4cdd8", dim:"#4a5870",
+  white:"#eef2f8", jsblue:"#0a7090", brics:"#c84a17",
 };
 
 // ─── CSS ─────────────────────────────────────────────────────────────────────
-const CSS = `
-@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500;700&family=Instrument+Serif:ital@0;1&family=Share+Tech+Mono&family=Barlow+Condensed:wght@400;600;700;900&display=swap');
+const GLOBAL_CSS = `
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&family=Instrument+Serif:ital@0;1&family=Share+Tech+Mono&family=Barlow+Condensed:wght@300;400;600;700;800;900&family=Barlow:wght@300;400;500&display=swap');
 *{box-sizing:border-box;margin:0;padding:0}
 html{scroll-behavior:smooth}
 body{background:${C.bg};color:${C.text};font-family:'DM Sans',sans-serif;overflow-x:hidden}
-::-webkit-scrollbar{width:3px}::-webkit-scrollbar-track{background:${C.bg}}::-webkit-scrollbar-thumb{background:${C.borderB}}
-@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
-@keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
-@keyframes blink{0%,100%{opacity:1}50%{opacity:0}}
-.fade-up{animation:fadeUp .5s ease forwards;opacity:0}
-.d1{animation-delay:.08s}.d2{animation-delay:.16s}.d3{animation-delay:.24s}.d4{animation-delay:.32s}
+::-webkit-scrollbar{width:4px;height:4px}
+::-webkit-scrollbar-track{background:${C.bg}}
+::-webkit-scrollbar-thumb{background:${C.borderB};border-radius:2px}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
+@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
+@keyframes fadeUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+@keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+@keyframes ticker{0%{transform:translateX(100vw)}100%{transform:translateX(-300%)}}
+.fade-up{animation:fadeUp .6s ease forwards;opacity:0}
+.fade-in{animation:fadeIn .35s ease forwards}
+.delay-1{animation-delay:.1s}.delay-2{animation-delay:.2s}.delay-3{animation-delay:.3s}
+.delay-4{animation-delay:.4s}.delay-5{animation-delay:.5s}
 .mono{font-family:'JetBrains Mono',monospace}
-.mono2{font-family:'Share Tech Mono',monospace}
+.mono-alt{font-family:'Share Tech Mono',monospace}
 .serif{font-family:'Instrument Serif',serif}
 .cond{font-family:'Barlow Condensed',sans-serif}
-.live{width:6px;height:6px;border-radius:50%;background:${C.green};animation:pulse 1.4s infinite;display:inline-block}
-.btn-primary{background:${C.white};color:#080808;font-weight:700;border:none;padding:13px 28px;cursor:pointer;font-size:13px;letter-spacing:.02em;transition:all .2s;font-family:'DM Sans',sans-serif}
-.btn-primary:hover{background:#dedad4;transform:translateY(-1px)}
-.btn-ghost{background:transparent;color:${C.white};font-weight:500;border:1px solid ${C.borderB};padding:13px 28px;cursor:pointer;font-size:13px;letter-spacing:.02em;transition:all .2s;font-family:'DM Sans',sans-serif}
-.btn-ghost:hover{border-color:${C.dim};background:${C.panel}}
-.bar{height:1px;background:${C.dim2};position:relative;overflow:hidden;margin-top:6px}
-.bar-fill{height:100%;background:${C.white};transition:width .6s ease}
-.bar-fill.green{background:${C.green}}
-.bar-fill.amber{background:${C.amber}}
-.nav-link{font-family:'DM Sans',sans-serif;font-size:13px;font-weight:400;border:none;background:transparent;color:${C.dim};cursor:pointer;padding:4px 0;border-bottom:1px solid transparent;transition:all .15s}
-.nav-link:hover{color:${C.text}}
-.nav-link.active{color:${C.white};border-bottom-color:${C.white}}
-.tab-btn{font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;border:none;background:transparent;color:${C.dim};cursor:pointer;padding:8px 0;border-bottom:1px solid transparent;transition:all .15s}
-.tab-btn.active{color:${C.white};border-bottom-color:${C.white}}
-.auth-input{width:100%;background:${C.panel2};border:1px solid ${C.border};color:${C.white};padding:11px 14px;font-size:13px;font-family:'DM Sans',sans-serif;outline:none;transition:border-color .15s}
-.auth-input:focus{border-color:${C.dim}}
-.auth-input::placeholder{color:${C.dim2}}
-.label{font-family:'Barlow Condensed',sans-serif;font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:${C.dim}}
-.badge{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;letter-spacing:.06em;padding:2px 7px;text-transform:uppercase}
-.lock-overlay{position:absolute;inset:0;background:rgba(8,8,8,.88);backdrop-filter:blur(3px);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:10}
+.live-dot{width:7px;height:7px;border-radius:50%;background:${C.green};animation:pulse 1.4s infinite;display:inline-block}
+.btn-gold{background:linear-gradient(135deg,${C.gold},${C.goldL});color:#000;font-weight:700;border:none;padding:14px 32px;border-radius:4px;cursor:pointer;font-size:14px;letter-spacing:.03em;transition:all .3s;font-family:'DM Sans',sans-serif}
+.btn-gold:hover{transform:translateY(-2px);box-shadow:0 8px 30px ${C.gold}40}
+.btn-outline{background:transparent;color:${C.gold};font-weight:600;border:1px solid ${C.gold}60;padding:14px 32px;border-radius:4px;cursor:pointer;font-size:14px;letter-spacing:.03em;transition:all .3s;font-family:'DM Sans',sans-serif}
+.btn-outline:hover{border-color:${C.gold};background:${C.gold}10}
+.nav-tab{font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:8px 14px;border:none;background:transparent;color:${C.dim};cursor:pointer;border-bottom:2px solid transparent;transition:all .2s;white-space:nowrap}
+.nav-tab:hover{color:${C.text}}
+.nav-tab.active{color:${C.gold};border-bottom-color:${C.gold}}
+.icard{background:${C.panel};border:1px solid ${C.border};border-top:2px solid;padding:11px;cursor:pointer;transition:all .2s;overflow:hidden}
+.icard:hover{border-color:${C.borderB};transform:translateY(-1px)}
+.badge{font-family:'Barlow Condensed',sans-serif;font-size:10px;font-weight:700;letter-spacing:.05em;padding:2px 6px;border-radius:2px;text-transform:uppercase}
+.alert-row{display:flex;align-items:center;gap:8px;padding:5px 10px;border-left:3px solid;margin-bottom:3px;font-size:10.5px}
+.drow{display:flex;justify-content:space-between;align-items:center;padding:4px 0;border-bottom:1px solid ${C.border};font-size:11px}
+.drow:last-child{border-bottom:none}
+.scanline-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,.06) 2px,rgba(0,0,0,.06) 4px);pointer-events:none;z-index:0}
+.disclaimer-bar{background:#0a0f1a;border-top:1px solid ${C.border};border-bottom:1px solid ${C.border};padding:8px 40px;font-size:10px;color:${C.dim};text-align:center;letter-spacing:.02em;line-height:1.6}
 `;
 
+// ─── DATA — 9 INDICES LIVE ────────────────────────────────────────────────────
+const INDICES = [
+  { id:"RTAI",  name:"RWA Tokenization",       color:C.blueL,  base:78.6, vol:0.8, unit:"", sub:["Volume","Quality","Comply","Liquid"], subV:[85,72,68,81], sr:2.40, ir:1.80, dd:-18, alpha:34, z:8.7,  desc:"BlackRock BUIDL · Franklin BENJI · Ondo OUSG · Centrifuge · Maple", method:"TVL-weighted tokenization volume (30%), institutional quality (25%), ESMA/MiCA compliance (25%), secondary liquidity (20%). Automated via DeFi Llama API. 6h update.", supaTable:"index_rtai", supaField:"rtai_value", status:"LIVE" },
+  { id:"CCQI",  name:"Carbon Credit Quality",  color:C.green,  base:72.1, vol:0.5, unit:"", sub:["Verif.","Perm.","Addit.","CoBen."], subV:[94,88,92,95], sr:3.10, ir:2.14, dd:-12, alpha:52, z:11.3, desc:"Verra VCUs · Gold Standard · Isometric · ICE EUA corr. ρ=0.78. Pillar Two fiscal resilience signal (threshold: score <75).", method:"Verification rigor (30%), permanence (25%), additionality (25%), co-benefits (20%). ICE EUA lead signal via Yahoo Finance CO2.L. 6h update.", supaTable:"index_ccqi", supaField:"ccqi_value", status:"LIVE" },
+  { id:"SSSI",  name:"Stablecoin Stability",   color:C.amber,  base:73.2, vol:0.6, unit:"", sub:["USDC","USDT","DAI","PYUSD"], subV:[80,59,55,62], sr:1.90, ir:1.39, dd:-22, alpha:28, z:6.9,  desc:"10 stablecoins · Reserve transparency · VPIN sigmoid · MiCA EMT status", method:"Reserve transparency (35%), peg deviation exp(-50|δ|) (25%), VPIN sigmoid (20%), redemption (20%). CoinGecko API. 6h update.", supaTable:"index_sssi", supaField:"sssi_value", status:"LIVE" },
+  { id:"CAVI",  name:"CBDC Adoption Velocity", color:C.purple, base:64.8, vol:0.9, unit:"", sub:["Tech.","Policy","Infra.","Adopt."], subV:[68,58,72,55], sr:2.80, ir:1.81, dd:-15, alpha:41, z:10.2, desc:"134 countries · BIS mBridge · SWIFT CBDC · Digital Euro · e-CNY · DREX", method:"Technology (25%), policy framework (25%), cross-border infrastructure (20%), adoption penetration (30%). Manual monthly update.", supaTable:"index_cavi", supaField:"cavi_value", status:"LIVE" },
+  { id:"DYOI",  name:"DeFi Yield Optimiz.",    color:C.cyan,   base:81.3, vol:1.1, unit:"%", sub:["Aave","Curve","Uniswap","Compound"], subV:[88,79,82,71], sr:3.60, ir:2.20, dd:-25, alpha:68, z:13.1, desc:"25+ protocols · Risk-adjusted YRA · β-protocol scoring · DeFi Llama TVL", method:"YRA = Gross_APY × (1 - Risk_Penalty). 25 protocols, beta-scoring. DeFi Llama API. 6h update.", supaTable:"index_dyoi", supaField:"dyoi_value", status:"LIVE" },
+  { id:"XSQI",  name:"XRPL Settlement Quality",color:C.teal,  base:70.6, vol:0.6, unit:"", sub:["Speed","Comply","Liquid","ISO"], subV:[100,84,17,80], sr:2.15, ir:1.60, dd:-20, alpha:31, z:7.8,  desc:"XRPL 3-5s finality · RLUSD/EURC AMM · 12 ODL corridors · ISO 20022", method:"Settlement speed (25%), FATF/MiCA compliance (25%), ODL liquidity (25%), ISO 20022 (25%). XRPL API + CoinGecko. 6h update.", supaTable:"index_xsqi", supaField:"xsqi_value", status:"LIVE" },
+  { id:"XCDI",  name:"XRPL Compute-Dollar",    color:C.goldL, base:48.3, vol:1.0, unit:"", sub:["XRP","RLUSD","Infra","Activity"], subV:[43,18,45,98], sr:2.45, ir:1.75, dd:-22, alpha:38, z:9.1,  desc:"XRP + RLUSD + XRPL AMM + on-chain activity · XRPL public API", method:"XRP score (normalized price+mcap) (30%), RLUSD supply+TVL (25%), infrastructure (20%), activity (25%). XRPL API + CoinGecko. 6h update.", supaTable:"index_xcdi", supaField:"xcdi_value", status:"LIVE" },
+  { id:"ETACI", name:"ESG Tokenized Compliance",color:C.pink, base:75.8, vol:0.7, unit:"", sub:["CSRD","SFDR","Taxonomy","BEPS"], subV:[62,71,58,82], sr:1.85, ir:1.35, dd:-18, alpha:25, z:6.5,  desc:"50K+ EU CSRD companies · SFDR Art.8/9 · EU Taxonomy · BEPS Pillar 2 · €42.5Bn tokenized ESG bonds", method:"CSRD (30%), SFDR (25%), EU Taxonomy (25%), BEPS (20%) + tokenization bonus. Manual monthly update.", supaTable:"index_etaci", supaField:"etaci_value", status:"LIVE" },
+  { id:"PII",   name:"Proprietary Integrity",  color:C.orange, base:89.8, vol:0.9, unit:"", sub:["Counterparty","Amount","Flow","Position"], subV:[88,93,91,86], sr:3.20, ir:2.05, dd:-16, alpha:55, z:11.8, desc:"Information leakage index · 6 stablecoin architectures · CoinGecko MC-weighted · Ahmed-Aldasoro run risk", method:"PII = 0.35×I_counterparty + 0.30×I_amount + 0.20×I_flow + 0.15×I_position. MC-weighted aggregate. CoinGecko API. 6h update.", supaTable:"index_pii", supaField:"pii_value", status:"LIVE" },
+];
+
+const COMMODITY_IDX = [
+  { id:"BGI",    name:"BRICS Grain",      color:C.brics,  val:142.8, chg:+1.8 },
+  { id:"CGPI",   name:"Commodity GeoRisk",color:C.red,    val:72.4,  chg:+3.1 },
+  { id:"CCFI",   name:"CTA Flow",         color:C.purple, val:-0.62, chg:-0.08 },
+  { id:"VPIN-C", name:"VPIN Commodity",   color:C.amber,  val:0.48,  chg:+0.03 },
+];
+
+const AIS_ROUTES = [
+  { name:"Strait of Hormuz",  risk:78, color:C.red,   signal:"Traffic -18% vs MA30" },
+  { name:"Suez Canal",        risk:74, color:C.red,   signal:"Cape Horn deviation +12%" },
+  { name:"Malacca Strait",    risk:52, color:C.amber, signal:"Moderate congestion 36h" },
+  { name:"Black Sea/Bosphorus",risk:85,color:C.red,   signal:"CRITICAL: grain corridor" },
+];
+
+const ALERTS_INIT = [
+  { t:"red",   time:"10:15", msg:"VPIN BTC/USD: 0.42 — INFORMED TRADING. Smart money active." },
+  { t:"red",   time:"10:00", msg:"SSSI: USDP peg deviation detected — monitoring active." },
+  { t:"amber", time:"08:30", msg:"XSQI: Ripple RLUSD supply update — XCDI recalculating." },
+  { t:"amber", time:"08:00", msg:"ETACI: CSRD Q2 reporting deadline approaching." },
+  { t:"green", time:"07:30", msg:"CCQI: ICE EUA +2.1% — Pillar Two signal confirmed ρ=0.78." },
+  { t:"green", time:"07:00", msg:"RTAI: BlackRock BUIDL TVL +$340M → RTAI Volume component updated." },
+];
+
+const CHECKPOINTS = [
+  { time:"00:00", label:"CCQI — ICE EUA pre-market scan", engine:"SOS", signal:"Yahoo Finance CO2.L", st:"green" },
+  { time:"01:00", label:"DYOI — DeFi Llama protocol scan", engine:"SRE", signal:"25 protocols yield update", st:"green" },
+  { time:"02:00", label:"SSSI — CoinGecko stablecoin peg check", engine:"SRE", signal:"10 stablecoins VPIN", st:"green" },
+  { time:"03:00", label:"RTAI — RWA TVL scan", engine:"SOS", signal:"DeFi Llama /protocols/rwa", st:"green" },
+  { time:"04:00", label:"XCDI — XRPL ledger stats", engine:"SGI", signal:"XRPL public API", st:"amber" },
+  { time:"05:00", label:"XSQI — ODL corridor check", engine:"SGI", signal:"XRPL + CoinGecko", st:"amber" },
+  { time:"06:00", label:"CAVI — CBDC monthly check", engine:"SMA", signal:"BIS tracker", st:"green" },
+  { time:"07:00", label:"ETACI — SFDR filing scan", engine:"SOS", signal:"ESMA registry", st:"green" },
+  { time:"08:00", label:"PII — Information leakage update", engine:"SRE", signal:"CoinGecko MC", st:"green" },
+  { time:"10:00", label:"CCQI — ICE EUA market open", engine:"SRE", signal:"Yahoo Finance live", st:"green" },
+  { time:"12:00", label:"Full suite mid-day rebalance", engine:"ALL", signal:"9 indices GitHub Actions", st:"green" },
+  { time:"16:00", label:"CCQI — EUA close snapshot", engine:"SRE", signal:"Yahoo Finance CO2.L close", st:"amber" },
+  { time:"18:00", label:"Full suite evening update", engine:"ALL", signal:"GitHub Actions scheduled", st:"green" },
+];
+
+const MACRO_DEFAULT = [
+  { k:"DXY", v:"102.4", chg:"-0.3%", dir:-1 },
+  { k:"VIX", v:"18.2",  chg:"+1.8", dir:1 },
+  { k:"EUA", v:"€77.0", chg:"+2.1%", dir:1 },
+  { k:"BTC", v:"$70,840", chg:"+1.4%", dir:1 },
+  { k:"XRP", v:"$1.07", chg:"+0.8%", dir:1 },
+  { k:"ETH", v:"$3,420", chg:"-0.6%", dir:-1 },
+];
+
 // ─── HELPERS ─────────────────────────────────────────────────────────────────
-const genS = (b, v, n=40) => { let x=b,a=[]; for(let i=0;i<n;i++){x+=(Math.random()-.47)*v; a.push({i,v:Math.max(0,x)});} return a; };
-const Mini = ({data,col="#fff",h=24}) => (
+const rnd = (a, b) => a + Math.random() * (b - a);
+const genSeries = (base, vol, n = 30) => Array.from({ length: n }, (_, i) => ({ i, v: Math.max(0, base + (Math.random() - .5) * vol * 8) }));
+const MiniChart = ({ data, col, h = 30 }) => (
   <ResponsiveContainer width="100%" height={h}>
-    <AreaChart data={data} margin={{top:0,right:0,bottom:0,left:0}}>
-      <defs><linearGradient id={`g${col.replace("#","")}`} x1="0" y1="0" x2="0" y2="1">
-        <stop offset="0%" stopColor={col} stopOpacity={.2}/><stop offset="100%" stopColor={col} stopOpacity={0}/>
-      </linearGradient></defs>
-      <Area type="monotone" dataKey="v" stroke={col} strokeWidth={1} fill={`url(#g${col.replace("#","")})`} dot={false} isAnimationActive={false}/>
+    <AreaChart data={data}>
+      <defs><linearGradient id={`g${col.replace("#","")}`} x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor={col} stopOpacity={.35} /><stop offset="95%" stopColor={col} stopOpacity={0} /></linearGradient></defs>
+      <Area type="monotone" dataKey="v" stroke={col} strokeWidth={1.5} fill={`url(#g${col.replace("#","")})`} dot={false} isAnimationActive={false} />
     </AreaChart>
   </ResponsiveContainer>
 );
-const Bar = ({v,col="white"}) => (
-  <div className="bar"><div className={`bar-fill ${col}`} style={{width:`${Math.min(v,100)}%`}}/></div>
-);
-const Div = () => <div style={{height:1,background:C.border,margin:"12px 0"}}/>;
-const LL = ({children,col=C.dim}) => <div className="label" style={{color:col,marginBottom:4}}>{children}</div>;
-
-// ─── LOCK ────────────────────────────────────────────────────────────────────
-const Lock = ({tier,onUp}) => (
-  <div className="lock-overlay">
-    <div style={{fontSize:28,marginBottom:12}}>◻</div>
-    <div className="mono" style={{fontSize:11,color:C.white,marginBottom:6}}>ACCESS RESTRICTED</div>
-    <div style={{fontSize:11,color:C.dim,textAlign:"center",marginBottom:16}}>Available from <span style={{color:C.white}}>{tier}</span> plan</div>
-    <button className="btn-primary" style={{padding:"8px 20px",fontSize:11}} onClick={onUp}>Upgrade →</button>
+const GaugeBar = ({ val, col, h = 5 }) => (
+  <div style={{ height: h, background: `${col}22`, borderRadius: 2, overflow: "hidden" }}>
+    <div style={{ width: `${Math.min(100, val)}%`, height: "100%", background: col, borderRadius: 2, transition: "width .5s" }} />
   </div>
 );
+const PanelBox = ({ children, border = C.border }) => (
+  <div style={{ background: C.panel, border: `1px solid ${border}40`, borderTop: `2px solid ${border}`, padding: 14 }}>{children}</div>
+);
+const DLbl = ({ children, col = C.dim }) => <div style={{ fontFamily: "'Barlow Condensed',sans-serif", fontSize: 9, fontWeight: 700, letterSpacing: ".1em", textTransform: "uppercase", color: col, marginBottom: 4 }}>{children}</div>;
+const DVal = ({ children, col = C.white, sz = 18 }) => <div className="mono-alt" style={{ fontSize: sz, color: col, lineHeight: 1.2 }}>{children}</div>;
+const Divider = () => <div style={{ height: 1, background: C.border, margin: "8px 0" }} />;
+const Badge = ({ children, col = C.dim }) => <span className="badge" style={{ background: col + "18", color: col, border: `1px solid ${col}40` }}>{children}</span>;
+const Dot = ({ status }) => <span style={{ width: 6, height: 6, borderRadius: "50%", background: status === "red" ? C.red : status === "amber" ? C.amber : C.green, display: "inline-block", animation: status === "red" ? "pulse 1s infinite" : "none" }} />;
 
-// ══════════════════════════════════════════════════════════════════════════════
-// AUTH PAGE
-// ══════════════════════════════════════════════════════════════════════════════
-const AuthPage = ({onLogin,onNav}) => {
-  const [mode,setMode]=useState("login");
-  const [email,setEmail]=useState("");
-  const [pw,setPw]=useState("");
-  const [name,setName]=useState("");
-  const [err,setErr]=useState("");
-  const [loading,setLoading]=useState(false);
+// ─── AMF DISCLAIMER BANNER ────────────────────────────────────────────────────
+const DisclaimerBanner = () => (
+  <div className="disclaimer-bar">
+    ⚖️ <strong>REGULATORY NOTICE:</strong> STEELLDY indices are algorithmic scoring tools for informational purposes only. They do not constitute investment advice, financial recommendations, or solicitation to buy or sell any financial instrument within the meaning of MiFID II Directive 2014/65/EU or AMF regulations. STEELLDY Advisory is not a licensed investment services provider (PSI). Past performance of backtested strategies is not indicative of future results. All scores are proprietary calculations — not ratings issued by a registered credit rating agency.
+  </div>
+);
 
-  const submit = () => {
-    setErr(""); setLoading(true);
-    setTimeout(()=>{
-      if(mode==="login"){
-        const u=loginUser(email,pw);
-        if(u) onLogin(u); else setErr("Email ou mot de passe incorrect.");
-      } else {
-        if(!name||!email||!pw){setErr("Tous les champs requis.");setLoading(false);return;}
-        if(pw.length<6){setErr("Minimum 6 caractères.");setLoading(false);return;}
-        onLogin({email,password:pw,role:"analyst",name,tier:"Analyst",plan:"€490/mo"});
+// ═══════════════════════════════════════════════════════════════════════════════
+// HOME PAGE v15
+// ═══════════════════════════════════════════════════════════════════════════════
+const HomePage = ({ onNavigate }) => {
+  const [lives, setLives] = useState(INDICES.map(x => x.base));
+  const [sbLive, setSbLive] = useState({});
+
+  useEffect(() => {
+    // Fetch real values from Supabase for the 9 indices
+    if (!SB_HEADERS) return;
+    const fetchAll = async () => {
+      const results = {};
+      for (const idx of INDICES) {
+        try {
+          const r = await fetch(`${SB_URL}/rest/v1/${idx.supaTable}?select=${idx.supaField}&order=timestamp.desc&limit=1`, { headers: SB_HEADERS });
+          const data = await r.json();
+          if (data?.[0]?.[idx.supaField]) results[idx.id] = parseFloat(data[0][idx.supaField]);
+        } catch (e) {}
       }
-      setLoading(false);
-    },500);
-  };
-
-  return (
-    <div style={{minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",padding:24}}>
-      <div style={{width:"100%",maxWidth:400}}>
-        <div style={{textAlign:"center",marginBottom:40}}>
-          <div className="mono" style={{fontSize:20,fontWeight:700,color:C.white,letterSpacing:".2em"}}>STEELLDY</div>
-          <div className="label" style={{marginTop:6}}>QUANTITATIVE INDEX INTELLIGENCE</div>
-          <div style={{fontSize:11,color:C.dim,marginTop:8}}>Sign in to your institutional account</div>
-        </div>
-
-        <div style={{background:C.panel,border:`1px solid ${C.border}`,borderTop:`1px solid ${C.white}`,padding:28}}>
-          <div style={{display:"flex",gap:0,marginBottom:24,borderBottom:`1px solid ${C.border}`}}>
-            {[["login","Sign In"],["register","Create Account"]].map(([m,l])=>(
-              <button key={m} onClick={()=>{setMode(m);setErr("");}}
-                style={{flex:1,padding:"9px 0",border:"none",background:"transparent",color:mode===m?C.white:C.dim,fontFamily:"'DM Sans'",fontSize:12,fontWeight:600,cursor:"pointer",borderBottom:mode===m?`1px solid ${C.white}`:"1px solid transparent",marginBottom:-1}}>
-                {l}
-              </button>
-            ))}
-          </div>
-          {mode==="register" && <div style={{marginBottom:14}}>
-            <LL>Full Name</LL>
-            <input className="auth-input" placeholder="Jean Dupont" value={name} onChange={e=>setName(e.target.value)}/>
-          </div>}
-          <div style={{marginBottom:14}}>
-            <LL>Email</LL>
-            <input className="auth-input" type="email" placeholder="you@institution.com" value={email} onChange={e=>setEmail(e.target.value)}/>
-          </div>
-          <div style={{marginBottom:22}}>
-            <LL>Password</LL>
-            <input className="auth-input" type="password" placeholder="••••••••" value={pw} onChange={e=>setPw(e.target.value)} onKeyDown={e=>e.key==="Enter"&&submit()}/>
-          </div>
-          {err && <div style={{background:`${C.red}10`,border:`1px solid ${C.red}40`,padding:"9px 12px",marginBottom:14,fontSize:11,color:C.red}}>{err}</div>}
-          <button className="btn-primary" style={{width:"100%",opacity:loading?.7:1}} onClick={submit} disabled={loading}>
-            {loading?"…":mode==="login"?"Sign In →":"Create Account →"}
-          </button>
-          {mode==="login" && (
-            <div style={{marginTop:16,textAlign:"center"}}>
-              <span style={{fontSize:11,color:C.dim}}>No account? </span>
-              <button onClick={()=>setMode("register")} style={{background:"none",border:"none",color:C.white,fontSize:11,cursor:"pointer",textDecoration:"underline"}}>Start your 30-day free trial</button>
-            </div>
-          )}
-        </div>
-        <div style={{textAlign:"center",marginTop:20}}>
-          <button onClick={()=>onNav("home")} style={{background:"none",border:"none",color:C.dim,fontSize:12,cursor:"pointer"}}>← Back to home</button>
-        </div>
-        <div style={{textAlign:"center",marginTop:12,fontSize:10,color:C.dim}}>
-          Questions? <a href="mailto:contact@steelldy.com" style={{color:C.text}}>contact@steelldy.com</a>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-// ══════════════════════════════════════════════════════════════════════════════
-// USER DASHBOARD
-// ══════════════════════════════════════════════════════════════════════════════
-const UserDash = ({user,onNav,onLogout}) => {
-  const [tab,setTab]=useState("overview");
-  const [ccqi,setCcqi]=useState(72.1);
-  const [dyoi,setDyoi]=useState(64.1);
-  const [clock,setClock]=useState("");
-  const [eua,setEua]=useState(null);
-  const [tvl,setTvl]=useState(null);
-  // ── 7 free indices — Supabase live with fallbacks ──────────────────────────
-  const [freeIndices,setFreeIndices]=useState({
-    RTAI:78.6, SSSI:73.2, CAVI:64.8,
-    XSQI:87.4, XCDI:72.1, ETACI:68.9, PII:84.7
-  });
-  const [freeIndicesLive,setFreeIndicesLive]=useState(false);
-  const canDYOI = user.role!=="analyst";
-  const canReports = user.role!=="analyst";
-
-  useEffect(()=>{
-    const id=setInterval(()=>{
-      setCcqi(v=>parseFloat((Math.max(65,Math.min(85,v+(Math.random()-.49)*.1))).toFixed(1)));
-      setDyoi(v=>parseFloat((Math.max(55,Math.min(75,v+(Math.random()-.49)*.12))).toFixed(1)));
-      const n=new Date(); setClock(`${String(n.getUTCHours()).padStart(2,"0")}:${String(n.getUTCMinutes()).padStart(2,"0")}:${String(n.getUTCSeconds()).padStart(2,"0")}`);
-    },1500);
-    return ()=>clearInterval(id);
-  },[]);
-
-  useEffect(()=>{
-    if(!SB_H) return;
-    // Fetch market_data (CCQI, DYOI, EUA, TVL)
-    fetch(`${SB_URL}/rest/v1/market_data?select=*&order=timestamp.desc&limit=1`,{headers:SB_H})
-      .then(r=>r.json()).then(d=>{if(d?.[0]){setEua(d[0].eua_price);setTvl(d[0].defi_tvl);}}).catch(()=>{});
-
-    // Fetch 7 free indices from their Supabase tables
-    const FREE_TABLES = [
-      {table:"rtai_index", key:"RTAI"},
-      {table:"sssi_index", key:"SSSI"},
-      {table:"cavi_index", key:"CAVI"},
-      {table:"xsqi_index", key:"XSQI"},
-      {table:"xcdi_index", key:"XCDI"},
-      {table:"etaci_index",key:"ETACI"},
-      {table:"pii_index",  key:"PII"},
-    ];
-    Promise.allSettled(
-      FREE_TABLES.map(({table,key})=>
-        fetch(`${SB_URL}/rest/v1/${table}?select=value,timestamp&order=timestamp.desc&limit=1`,{headers:SB_H})
-          .then(r=>r.json()).then(d=>({key, value: d?.[0]?.value || null}))
-      )
-    ).then(results=>{
-      const updates={};
-      let anyLive=false;
-      results.forEach(r=>{
-        if(r.status==="fulfilled" && r.value?.value !== null){
-          updates[r.value.key]=parseFloat(r.value.value);
-          anyLive=true;
-        }
-      });
-      if(Object.keys(updates).length>0){
-        setFreeIndices(prev=>({...prev,...updates}));
-        setFreeIndicesLive(anyLive);
-      }
-    }).catch(()=>{});
-  },[]);
-
-  const ccqiChg=((ccqi-72.0)/72.0*100); const dyoiChg=((dyoi-64.1)/64.1*100);
-
-  const PROTOCOLS=[
-    {name:"Aave v3",apy:4.12,risk:18,score:88},{name:"Compound v3",apy:3.84,risk:20,score:82},
-    {name:"Curve 3pool",apy:5.20,risk:25,score:79},{name:"Uniswap v3",apy:6.40,risk:32,score:74},
-    {name:"Morpho",apy:4.80,risk:22,score:77},{name:"Spark",apy:3.60,risk:15,score:84},
-    {name:"Convex",apy:7.10,risk:38,score:68},{name:"Yearn v3",apy:5.50,risk:28,score:72},
-    {name:"Balancer",apy:4.90,risk:27,score:75},{name:"Pendle",apy:8.20,risk:42,score:65},
-  ];
-  const REPORTS=[
-    {title:"CCQI Monthly Report — June 2026",  date:"2026-06-01",tier:"analyst",     size:"2.4 MB", action:"generate", id:"ccqi"},
-    {title:"DYOI Protocol Analysis Q2 2026",   date:"2026-06-01",tier:"professional", size:"4.1 MB", action:"generate", id:"dyoi"},
-    {title:"CSRD/Pillar Two Compliance Brief", date:"2026-05-15",tier:"analyst",     size:"1.8 MB", action:"email"},
-    {title:"Institutional Onboarding Pack",    date:"2026-04-01",tier:"institution", size:"8.5 MB", action:"email"},
-  ];
-  const tierN={analyst:0,professional:1,institution:2,admin:3};
-  const canDl=t=>tierN[user.role]>=tierN[t];
-
-  // ── PDF GENERATOR ──────────────────────────────────────────────────────────
-  const generatePDF = (reportId, reportTitle) => {
-    const now = new Date();
-    const dateStr = now.toLocaleDateString("en-GB",{day:"2-digit",month:"long",year:"numeric"});
-    const timeStr = now.toUTCString().slice(0,25);
-    const ccqiStatus = ccqi < 75 ? "ELEVATED PILLAR TWO EXPOSURE" : "COMPLIANT";
-    const ccqiColor  = ccqi < 75 ? "#f0a030" : "#17c96a";
-
-    const ccqiSection = `
-      <div class="section">
-        <div class="section-label">INDEX 01 / ENVIRONMENTAL</div>
-        <div class="index-name">CCQI <span class="index-sub">Carbon Credit Quality Index</span></div>
-        <div class="big-num" style="color:#f0ede8">${ccqi.toFixed(1)}<span style="font-size:18px;color:#5a5a5a">/100</span></div>
-        <div class="status-box" style="border-color:${ccqiColor};color:${ccqiColor}">⚠ CCQI ${ccqi.toFixed(1)} < 75 — ${ccqiStatus}</div>
-        <table class="data-table">
-          <tr><th>COMPOSANTE</th><th>POIDS</th><th>SCORE</th><th>STATUT</th></tr>
-          <tr><td>Verification Rigor</td><td>30%</td><td>90/100</td><td class="green">✓ STRONG</td></tr>
-          <tr><td>Permanence Score</td><td>25%</td><td>80/100</td><td class="green">✓ STRONG</td></tr>
-          <tr><td>Additionality</td><td>25%</td><td>87/100</td><td class="green">✓ STRONG</td></tr>
-          <tr><td>Co-Benefits</td><td>20%</td><td>73/100</td><td class="amber">⚠ MODERATE</td></tr>
-          <tr class="total"><td>CCQI COMPOSITE</td><td>100%</td><td>${ccqi.toFixed(1)}/100</td><td style="color:${ccqiColor}">${ccqiStatus}</td></tr>
-        </table>
-        <div class="footnote">Source: Verra Registry · Gold Standard · ICE EUA (CO2.L Yahoo Finance) · Updated: ${timeStr}</div>
-        <div class="pillar-box">
-          <strong>PILLAR TWO / BEPS INDICATOR</strong><br/>
-          A CCQI score below 75 triggers mandatory reassessment under CSRD Article 22 for groups with revenues &gt;€750M holding carbon credit portfolios. Current exposure: <strong style="color:${ccqiColor}">${ccqiStatus}</strong>.<br/>
-          Applicable regulation: BEPS GloBE Art.5 · EU Directive 2022/2523 · CSRD Art.22 Annex II.
-        </div>
-      </div>`;
-
-    const dyoiSection = (reportId === "dyoi" || user.role !== "analyst") ? `
-      <div class="section">
-        <div class="section-label">INDEX 02 / DEFI</div>
-        <div class="index-name">DYOI <span class="index-sub">DeFi Yield Opportunity Index</span></div>
-        <div class="big-num" style="color:#f0ede8">${dyoi.toFixed(1)}<span style="font-size:18px;color:#5a5a5a">/100</span></div>
-        <div class="formula-box">YRA = Gross_APY × (1 − Risk_Penalty) &nbsp;|&nbsp; 25 protocols &nbsp;|&nbsp; Updated hourly</div>
-        <table class="data-table">
-          <tr><th>PROTOCOL</th><th>GROSS APY</th><th>RISK</th><th>YRA NET</th><th>SIGNAL</th></tr>
-          <tr><td>Aave v3</td><td>4.12%</td><td>18/100</td><td>3.38%</td><td class="green">BUY ▲</td></tr>
-          <tr><td>Compound v3</td><td>3.84%</td><td>20/100</td><td>3.07%</td><td class="green">BUY ▲</td></tr>
-          <tr><td>Morpho</td><td>4.80%</td><td>22/100</td><td>3.74%</td><td class="green">BUY ▲</td></tr>
-          <tr><td>Spark</td><td>3.60%</td><td>15/100</td><td>3.06%</td><td class="green">BUY ▲</td></tr>
-          <tr><td>Curve 3pool</td><td>5.20%</td><td>25/100</td><td>3.90%</td><td class="amber">HOLD ◆</td></tr>
-          <tr><td>Convex</td><td>7.10%</td><td>38/100</td><td>4.40%</td><td class="amber">MONITOR ⚠</td></tr>
-        </table>
-        <div class="footnote">Source: DeFi Llama API · Nexus Mutual insurance overlay · STEELLDY YRA methodology</div>
-      </div>` : `<div class="section locked-section">
-        <div class="locked-msg">🔒 DYOI DATA — PROFESSIONAL PLAN REQUIRED<br/>
-        <small>Upgrade at steelldy-indices.com/pricing to access real-time DeFi yield intelligence.</small></div></div>`;
-
-    const html = `<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8"/>
-<title>STEELLDY — ${reportTitle}</title>
-<style>
-  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=DM+Sans:wght@300;400;600&display=swap');
-  *{box-sizing:border-box;margin:0;padding:0}
-  body{background:#f5f5f0;color:#1a1a1a;font-family:'DM Sans',sans-serif;font-size:11px;line-height:1.5}
-  .page{max-width:800px;margin:0 auto;background:#fff;padding:0}
-  /* HEADER */
-  .header{background:#080808;padding:20px 32px;display:flex;justify-content:space-between;align-items:center}
-  .logo{font-family:'JetBrains Mono',monospace;font-size:16px;font-weight:700;color:#f0ede8;letter-spacing:.2em}
-  .header-right{text-align:right}
-  .header-label{font-family:'JetBrains Mono',monospace;font-size:9px;color:#5a5a5a;letter-spacing:.1em}
-  .header-date{font-family:'JetBrains Mono',monospace;font-size:9px;color:#c8c4be;margin-top:2px}
-  /* TITLE BAR */
-  .title-bar{background:#0f0f0f;padding:24px 32px;border-bottom:1px solid #1e1e1e}
-  .report-label{font-family:'JetBrains Mono',monospace;font-size:8px;color:#5a5a5a;letter-spacing:.15em;margin-bottom:6px}
-  .report-title{font-size:20px;font-weight:300;color:#f0ede8;line-height:1.2}
-  /* META */
-  .meta-bar{background:#080808;padding:12px 32px;display:flex;gap:40px;border-bottom:2px solid #1e1e1e}
-  .meta-item .meta-label{font-family:'JetBrains Mono',monospace;font-size:7px;color:#5a5a5a;letter-spacing:.1em}
-  .meta-item .meta-val{font-family:'JetBrains Mono',monospace;font-size:10px;color:#c8c4be;margin-top:2px}
-  /* BODY */
-  .body{background:#fff;padding:28px 32px}
-  .section{margin-bottom:28px;padding-bottom:24px;border-bottom:1px solid #e0ddd8}
-  .section:last-child{border-bottom:none}
-  .section-label{font-family:'JetBrains Mono',monospace;font-size:8px;color:#9a9690;letter-spacing:.15em;margin-bottom:6px}
-  .index-name{font-family:'JetBrains Mono',monospace;font-size:15px;font-weight:700;color:#080808;margin-bottom:4px}
-  .index-sub{font-size:10px;font-weight:400;color:#6a6660;margin-left:8px}
-  .big-num{font-family:'JetBrains Mono',monospace;font-size:48px;font-weight:700;color:#080808;line-height:1;margin:10px 0 8px}
-  .status-box{border:1px solid;padding:8px 12px;margin:10px 0;font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;letter-spacing:.06em}
-  .formula-box{background:#f8f7f5;border:1px solid #e0ddd8;padding:8px 12px;font-family:'JetBrains Mono',monospace;font-size:9px;color:#6a6660;margin:10px 0}
-  .data-table{width:100%;border-collapse:collapse;margin:12px 0;font-size:10px}
-  .data-table th{background:#f0ede8;font-family:'JetBrains Mono',monospace;font-size:8px;font-weight:700;letter-spacing:.08em;color:#6a6660;text-align:left;padding:6px 8px;border-bottom:2px solid #c8c4be}
-  .data-table td{padding:7px 8px;border-bottom:1px solid #e8e5e0;color:#1a1a1a}
-  .data-table tr.total td{background:#f8f7f5;font-weight:700;font-family:'JetBrains Mono',monospace;font-size:10px}
-  .green{color:#0a8a40;font-family:'JetBrains Mono',monospace;font-weight:700}
-  .amber{color:#c07800;font-family:'JetBrains Mono',monospace;font-weight:700}
-  .red{color:#b03030;font-family:'JetBrains Mono',monospace;font-weight:700}
-  .footnote{font-size:8px;color:#9a9690;margin-top:8px;font-family:'JetBrains Mono',monospace}
-  .pillar-box{background:#fff8f0;border-left:3px solid #c07800;padding:10px 14px;margin-top:12px;font-size:10px;color:#5a4010;line-height:1.6}
-  .locked-section{text-align:center;padding:40px;background:#f8f7f5;border:1px dashed #c8c4be}
-  .locked-msg{color:#6a6660;font-size:12px;line-height:1.8}
-  /* DISCLAIMER */
-  .disclaimer{background:#f0ede8;padding:16px 32px;border-top:1px solid #c8c4be}
-  .disclaimer-text{font-size:8px;color:#8a8680;line-height:1.5;font-family:'JetBrains Mono',monospace}
-  /* FOOTER */
-  .footer{background:#080808;padding:12px 32px;display:flex;justify-content:space-between;align-items:center}
-  .footer-left{font-family:'JetBrains Mono',monospace;font-size:8px;color:#5a5a5a}
-  .footer-right{font-family:'JetBrains Mono',monospace;font-size:8px;color:#3a3a3a}
-  @media print{
-    body{background:#fff}
-    .page{max-width:100%;box-shadow:none}
-    @page{margin:0;size:A4}
-  }
-</style>
-</head>
-<body>
-<div class="page">
-  <div class="header">
-    <div class="logo">STEELLDY</div>
-    <div class="header-right">
-      <div class="header-label">QUANTITATIVE INDEX INTELLIGENCE</div>
-      <div class="header-date">Generated: ${timeStr}</div>
-    </div>
-  </div>
-  <div class="title-bar">
-    <div class="report-label">INTELLIGENCE REPORT</div>
-    <div class="report-title">${reportTitle}</div>
-  </div>
-  <div class="meta-bar">
-    <div class="meta-item"><div class="meta-label">SUBSCRIBER</div><div class="meta-val">${user.name}</div></div>
-    <div class="meta-item"><div class="meta-label">PLAN</div><div class="meta-val">${user.tier.toUpperCase()} · ${user.plan}</div></div>
-    <div class="meta-item"><div class="meta-label">DATE</div><div class="meta-val">${dateStr}</div></div>
-    <div class="meta-item"><div class="meta-label">CCQI</div><div class="meta-val" style="color:#17c96a">${ccqi.toFixed(1)}/100</div></div>
-    <div class="meta-item"><div class="meta-label">EUA PRICE</div><div class="meta-val">${eua ? "€"+eua.toFixed(2) : "€72.86"}</div></div>
-  </div>
-  <div class="body">
-    ${ccqiSection}
-    ${dyoiSection}
-  </div>
-  <div class="disclaimer">
-    <div class="disclaimer-text">
-      NOT INVESTMENT ADVICE · This report is generated for informational purposes only and does not constitute financial, legal, or tax advice. 
-      CCQI and DYOI are proprietary indices of STEELLDY Advisory (Gex, France). Data sources: Verra Registry, Gold Standard, ICE EUA (Yahoo Finance CO2.L), DeFi Llama API. 
-      IOSCO BMR aligned methodology. Pillar Two/BEPS analysis is indicative and should be verified with qualified tax counsel. 
-      Bloomberg Terminal® is a registered trademark of Bloomberg LP. © 2026 STEELLDY Advisory.
-    </div>
-  </div>
-  <div class="footer">
-    <div class="footer-left">© 2026 STEELLDY Advisory · steelldy-indices.com · contact@steelldy.com</div>
-    <div class="footer-right">CONFIDENTIAL — ${user.tier.toUpperCase()} SUBSCRIBER</div>
-  </div>
-</div>
-<script>window.onload=()=>window.print();</script>
-</body>
-</html>`;
-
-    const w = window.open("","_blank","width=900,height=700");
-    if(w){ w.document.write(html); w.document.close(); }
-    else { alert("Autorisez les popups pour générer le PDF."); }
-  };
-
-  return (
-    <div style={{minHeight:"100vh"}}>
-      {/* HEADER */}
-      <div style={{background:C.panel,borderBottom:`1px solid ${C.border}`,padding:"0 32px"}}>
-        <div style={{maxWidth:1200,margin:"0 auto",display:"flex",justifyContent:"space-between",alignItems:"center",height:56}}>
-          <div style={{display:"flex",alignItems:"center",gap:28}}>
-            <span onClick={()=>onNav("home")} className="mono" style={{fontSize:14,fontWeight:700,color:C.white,letterSpacing:".18em",cursor:"pointer"}}>STEELLDY</span>
-            <div style={{width:1,height:18,background:C.border}}/>
-            {[["overview","Overview"],["ccqi","CCQI"],["dyoi","DYOI"],["reports","Reports"]].map(([id,l])=>(
-              <button key={id} onClick={()=>setTab(id)} className={`tab-btn ${tab===id?"active":""}`}>{l}</button>
-            ))}
-          </div>
-          <div style={{display:"flex",alignItems:"center",gap:16}}>
-            <div style={{textAlign:"right"}}>
-              <div style={{fontSize:12,color:C.white,fontWeight:600}}>{user.name}</div>
-              <div className="mono" style={{fontSize:9,color:C.dim}}>{user.tier} · {user.plan}</div>
-            </div>
-            <span className="live"/><span style={{fontSize:9,color:C.green,marginLeft:4}}>LIVE</span>
-            <button className="btn-ghost" style={{padding:"5px 14px",fontSize:11}} onClick={onLogout}>Sign out</button>
-          </div>
-        </div>
-      </div>
-
-      <div style={{maxWidth:1200,margin:"0 auto",padding:"36px 32px"}}>
-
-        {/* OVERVIEW */}
-        {tab==="overview" && <div>
-          <div style={{marginBottom:32}}>
-            <div style={{fontSize:26,fontWeight:300,color:C.white}}>Good day, <span className="serif" style={{fontStyle:"italic"}}>{user.name.split(" ")[0]}</span></div>
-            <div className="mono" style={{fontSize:10,color:C.dim,marginTop:4}}>{new Date().toLocaleDateString("en-GB",{weekday:"long",day:"numeric",month:"long",year:"numeric"})} · {clock} UTC</div>
-          </div>
-          <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:1,background:C.border,border:`1px solid ${C.border}`,marginBottom:24}}>
-            {[
-              {l:"CCQI",v:ccqi.toFixed(1),chg:ccqiChg,sub:"Carbon Credit Quality",col:ccqi<75?C.amber:C.green},
-              {l:"DYOI",v:canDYOI?dyoi.toFixed(1):"••••",chg:canDYOI?dyoiChg:0,sub:"DeFi Yield Opportunity",col:C.white},
-              {l:"EUA PRICE",v:eua?`€${eua.toFixed(2)}`:"€72.86",chg:0.8,sub:"CO2.L · ICE EUA",col:C.white},
-              {l:"DEFI TVL",v:tvl?`$${(tvl/1e9).toFixed(1)}B`:"$72.7B",chg:0.3,sub:"DeFi Llama",col:C.white},
-            ].map(({l,v,chg,sub,col},i)=>(
-              <div key={i} style={{background:C.panel2,padding:20}}>
-                <div className="label">{l}</div>
-                <div className="mono2" style={{fontSize:36,color:col,lineHeight:1.1,margin:"8px 0"}}>{v}</div>
-                <div className="mono" style={{fontSize:9,color:chg>=0?C.green:C.red}}>{chg>=0?"▲":"▼"} {Math.abs(chg).toFixed(2)}%</div>
-                <div style={{fontSize:9,color:C.dim,marginTop:3}}>{sub}</div>
-              </div>
-            ))}
-          </div>
-
-          {/* index mini grid */}
-          <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:1,background:C.border,border:`1px solid ${C.border}`,marginBottom:24}}>
-            {[
-              {id:"RTAI", name:"RWA Tokenization",  v:freeIndices.RTAI,  live:freeIndicesLive},
-              {id:"CCQI", name:"Carbon Credit",      v:ccqi,              live:true},
-              {id:"SSSI", name:"Stablecoin",         v:freeIndices.SSSI,  live:freeIndicesLive},
-              {id:"CAVI", name:"CBDC Adoption",      v:freeIndices.CAVI,  live:freeIndicesLive},
-              {id:"DYOI", name:"DeFi Yield",         v:dyoi,              live:true},
-              {id:"XSQI", name:"XRPL Settlement",    v:freeIndices.XSQI,  live:freeIndicesLive},
-              {id:"XCDI", name:"XRPL Compute",       v:freeIndices.XCDI,  live:freeIndicesLive},
-              {id:"ETACI",name:"ESG Compliance",     v:freeIndices.ETACI, live:freeIndicesLive},
-              {id:"PII",  name:"Integrity",          v:freeIndices.PII,   live:freeIndicesLive},
-            ].map(({id,name,v,live},i)=>{
-              const chg=((Math.random()-.48)*.3);
-              return (
-                <div key={id} style={{background:C.panel2,padding:"14px 16px",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-                  <div>
-                    <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:2}}>
-                      <div className="mono" style={{fontSize:11,fontWeight:700,color:C.white}}>{id}</div>
-                      <span style={{fontSize:7,fontFamily:"'JetBrains Mono',monospace",padding:"1px 5px",
-                        background:live?`${C.green}20`:`${C.amber}15`,
-                        color:live?C.green:C.amber,
-                        border:`1px solid ${live?C.green+"40":C.amber+"40"}`}}>
-                        {live?"LIVE":"BETA"}
-                      </span>
-                    </div>
-                    <div style={{fontSize:9,color:C.dim}}>{name}</div>
-                  </div>
-                  <div style={{textAlign:"right"}}>
-                    <div className="mono2" style={{fontSize:22,color:live?C.white:C.dim}}>{v.toFixed(1)}</div>
-                    <div className="mono" style={{fontSize:9,color:chg>=0?C.green:C.red}}>{chg>=0?"+":""}{chg.toFixed(2)}%</div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-          {user.role==="analyst" && (
-            <div style={{background:C.panel2,border:`1px solid ${C.border}`,padding:20,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-              <div>
-                <div style={{fontSize:13,color:C.white,fontWeight:600,marginBottom:4}}>Upgrade to Professional</div>
-                <div style={{fontSize:11,color:C.dim}}>Access real-time DYOI feed, EUA lead signal, API access and PDF reports on demand.</div>
-              </div>
-              <button className="btn-primary" style={{padding:"9px 20px",fontSize:11,whiteSpace:"nowrap"}} onClick={()=>onNav("pricing")}>View Plans →</button>
-            </div>
-          )}
-        </div>}
-
-        {/* CCQI */}
-        {tab==="ccqi" && <div>
-          <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:32}}>
-            <div>
-              <div className="label" style={{color:C.dim,marginBottom:4}}>INDEX 01 / ENVIRONMENTAL</div>
-              <div className="mono" style={{fontSize:13,fontWeight:700,color:C.white,letterSpacing:".1em"}}>CCQI</div>
-              <div style={{fontSize:11,color:C.dim,marginTop:2}}>Carbon Credit Quality Index · Pillar Two Fiscal Resilience Indicator</div>
-            </div>
-            <div style={{textAlign:"right"}}>
-              <div className="mono2" style={{fontSize:72,color:C.white,lineHeight:1}}>{ccqi.toFixed(1)}</div>
-              <div className="mono" style={{fontSize:10,color:C.dim}}>/100</div>
-              <div style={{fontSize:11,color:ccqiChg>=0?C.green:C.red,marginTop:4}}>{ccqiChg>=0?"▲":"▼"} {Math.abs(ccqiChg).toFixed(2)}% today</div>
-            </div>
-          </div>
-          <div style={{display:"grid",gridTemplateColumns:"2fr 1fr",gap:1,background:C.border}}>
-            <div style={{background:C.panel2,padding:28}}>
-              {[["VERIFICATION",90],["PERMANENCE",80],["ADDITIONALITY",87],["CO-BENEFITS",73],["EUA SIGNAL",65]].map(([l,v])=>(
-                <div key={l} style={{marginBottom:20}}>
-                  <div style={{display:"flex",justifyContent:"space-between",marginBottom:6}}>
-                    <span className="label">{l}</span>
-                    <span className="mono" style={{fontSize:10,color:C.white}}>{l==="EUA SIGNAL"?"+0.5":v}</span>
-                  </div>
-                  <Bar v={l==="EUA SIGNAL"?65:v} col={v>=80?"green":v>=70?"":"amber"}/>
-                </div>
-              ))}
-              <div style={{marginTop:24,padding:16,border:`1px solid ${C.border}`,fontSize:11,color:C.amber,lineHeight:1.7}}>
-                ⚠ CCQI {ccqi.toFixed(1)} &lt; 75 — ELEVATED PILLAR TWO EXPOSURE · Verra post-scandal adjusted · Sources: Yahoo Finance · CoinGecko · Updated: {new Date().toUTCString().slice(0,16)}
-              </div>
-            </div>
-            <div style={{background:C.panel2,padding:28}}>
-              <div className="label" style={{marginBottom:14}}>PERFORMANCE STATISTICS *</div>
-              {[
-                ["Sharpe Ratio (inception)",  "1.42", C.white],
-                ["Information Ratio",          "0.87", C.white],
-                ["Tracking Error",             "8.4%", C.dim],
-                ["Max Drawdown",               "-12%", C.red],
-                ["Correlation EUA ICE",        "ρ=0.78",C.green],
-                ["Data points",                "847",  C.dim],
-              ].map(([l,v,col])=>(
-                <div key={l} style={{padding:"8px 0",borderBottom:`1px solid ${C.border}`,display:"flex",justifyContent:"space-between"}}>
-                  <span style={{fontSize:11,color:C.dim}}>{l}</span>
-                  <span className="mono" style={{fontSize:11,color:col}}>{v}</span>
-                </div>
-              ))}
-              <div style={{marginTop:12,fontSize:9,color:C.dim,lineHeight:1.6,fontStyle:"italic"}}>
-                * Since inception March 2026 (3 months). Sharpe ratio = (Return − Rf) / σ, Rf=3.5% ECB rate. Full 12-month out-of-sample backtesting scheduled Q3 2026 per IOSCO Principle 13.
-              </div>
-              <div style={{marginTop:16}}>
-                <div className="label" style={{marginBottom:10}}>IOSCO/BMR COMPLIANCE</div>
-                {[["Governance","Art. 5-6 BMR","✓"],["Data Sufficiency","Principle 7","✓"],["Transparency","Art. 13 BMR","✓"],["Conflict of Interest","Art. 4 BMR","✓"],["Independent Audit","Scheduled Q4 2026","◐"]].map(([a,b,c])=>(
-                  <div key={a} style={{padding:"7px 0",borderBottom:`1px solid ${C.border}`}}>
-                    <div style={{display:"flex",justifyContent:"space-between"}}>
-                      <span style={{fontSize:10,color:C.text}}>{a}</span>
-                      <span className="mono" style={{fontSize:9,color:c==="✓"?C.green:C.amber}}>{c} {c==="✓"?"OK":"In Progress"}</span>
-                    </div>
-                    <div className="mono" style={{fontSize:8,color:C.dim}}>{b}</div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>}
-
-        {/* DYOI */}
-        {tab==="dyoi" && <div style={{position:"relative"}}>
-          {!canDYOI && <Lock tier="Professional" onUp={()=>onNav("pricing")}/>}
-          <div style={{filter:canDYOI?"none":"blur(4px)",pointerEvents:canDYOI?"auto":"none"}}>
-            <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:32}}>
-              <div>
-                <div className="label" style={{color:C.dim,marginBottom:4}}>INDEX 02 / DEFI</div>
-                <div className="mono" style={{fontSize:13,fontWeight:700,color:C.white,letterSpacing:".1em"}}>DYOI</div>
-                <div style={{fontSize:11,color:C.dim,marginTop:2}}>DeFi Yield Optimized Index · Risk-Adjusted Yield Intelligence</div>
-              </div>
-              <div style={{textAlign:"right"}}>
-                <div className="mono2" style={{fontSize:72,color:C.white,lineHeight:1}}>{dyoi.toFixed(1)}</div>
-                <div className="mono" style={{fontSize:10,color:C.dim}}>/100</div>
-              </div>
-            </div>
-            <div style={{background:C.panel2,border:`1px solid ${C.border}`,padding:24}}>
-              <div className="label" style={{marginBottom:16}}>TOP 10 PROTOCOLS — RISK-ADJUSTED APY</div>
-              <table style={{width:"100%",borderCollapse:"collapse"}}>
-                <thead><tr style={{borderBottom:`1px solid ${C.border}`}}>
-                  {["Protocol","Gross APY","Risk","YRA","Signal"].map(h=>(
-                    <th key={h} className="label" style={{textAlign:h==="Protocol"?"left":"right",padding:"4px 10px"}}>{h}</th>
-                  ))}
-                </tr></thead>
-                <tbody>{PROTOCOLS.map((p,i)=>{
-                  const yra=(p.apy*(1-p.risk/100)).toFixed(2);
-                  const sig=p.score>=80?"BUY":p.score>=70?"HOLD":"MONITOR";
-                  const sc=p.score>=80?C.green:p.score>=70?C.amber:C.red;
-                  return <tr key={i} style={{borderBottom:`1px solid ${C.border}`}}>
-                    <td style={{padding:"10px",fontSize:12,color:C.white}}>{p.name}</td>
-                    <td className="mono" style={{padding:"10px",fontSize:11,color:C.green,textAlign:"right"}}>{p.apy.toFixed(2)}%</td>
-                    <td className="mono" style={{padding:"10px",fontSize:11,color:p.risk>30?C.red:C.amber,textAlign:"right"}}>{p.risk}</td>
-                    <td className="mono" style={{padding:"10px",fontSize:11,color:C.text,textAlign:"right"}}>{yra}%</td>
-                    <td style={{padding:"10px",textAlign:"right"}}><span className="badge" style={{background:sc+"15",color:sc,border:`1px solid ${sc}40`}}>{sig}</span></td>
-                  </tr>;
-                })}</tbody>
-              </table>
-              <div style={{marginTop:16,fontSize:10,color:C.dim}}>Source: DeFi Llama API · Updated hourly · YRA methodology · {PROTOCOLS.length} of 25 protocols shown</div>
-            </div>
-          </div>
-        </div>}
-
-        {/* REPORTS */}
-        {tab==="reports" && <div>
-          <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:24}}>
-            <div>
-              <div className="label" style={{marginBottom:6}}>INTELLIGENCE REPORTS</div>
-              <div style={{fontSize:22,fontWeight:300,color:C.white}}>Documents & Research</div>
-              <div style={{fontSize:11,color:C.dim,marginTop:4}}>Click ↓ to generate and download as PDF · Opens print dialog</div>
-            </div>
-            <div style={{background:C.panel2,border:`1px solid ${C.border}`,padding:"10px 16px",textAlign:"right"}}>
-              <div className="label" style={{marginBottom:4}}>YOUR PLAN</div>
-              <div className="mono" style={{fontSize:12,color:C.white}}>{user.tier}</div>
-              <div style={{fontSize:9,color:C.dim,marginTop:2}}>{user.plan}</div>
-            </div>
-          </div>
-
-          {/* GENERATE LIVE REPORTS */}
-          <div style={{marginBottom:16}}>
-            <div className="label" style={{marginBottom:8,color:C.dim}}>LIVE GENERATED REPORTS — REAL-TIME DATA</div>
-            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:1,background:C.border,marginBottom:1}}>
-              {[
-                {id:"ccqi", title:"CCQI Intelligence Report — "+new Date().toLocaleDateString("en-GB",{month:"long",year:"numeric"}), tier:"analyst", desc:"CCQI score, Pillar Two status, 5 sub-components, IOSCO compliance table"},
-                {id:"dyoi", title:"DYOI Protocol Analysis — "+new Date().toLocaleDateString("en-GB",{month:"long",year:"numeric"}), tier:"professional", desc:"Top 10 protocols, YRA scores, risk-adjusted APY, BUY/HOLD/MONITOR signals"},
-              ].map((r,i)=>{
-                const ok=canDl(r.tier);
-                return <div key={i} style={{background:C.panel2,padding:"18px 20px",display:"flex",justifyContent:"space-between",alignItems:"center",opacity:ok?1:.6}}>
-                  <div style={{flex:1}}>
-                    <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:4}}>
-                      <div className="live" style={{width:5,height:5}}/>
-                      <span style={{fontSize:9,color:C.green}}>LIVE DATA</span>
-                    </div>
-                    <div style={{fontSize:13,color:C.white,fontWeight:500,marginBottom:4}}>{r.title}</div>
-                    <div style={{fontSize:10,color:C.dim}}>{r.desc}</div>
-                    <div className="mono" style={{fontSize:8,color:C.dim,marginTop:4}}>Min plan: {r.tier.toUpperCase()} · Generated on demand · PDF via print dialog</div>
-                  </div>
-                  <div style={{marginLeft:20}}>
-                    {ok
-                      ? <button className="btn-primary" style={{padding:"8px 18px",fontSize:11,whiteSpace:"nowrap"}}
-                          onClick={()=>generatePDF(r.id, r.title)}>↓ Generate PDF</button>
-                      : <button className="btn-ghost" style={{padding:"8px 18px",fontSize:11,opacity:.4,whiteSpace:"nowrap"}}
-                          onClick={()=>onNav("pricing")}>🔒 Upgrade</button>
-                    }
-                  </div>
-                </div>;
-              })}
-            </div>
-          </div>
-
-          {/* STATIC REPORTS */}
-          <div>
-            <div className="label" style={{marginBottom:8,color:C.dim}}>STATIC DOCUMENTS</div>
-            {REPORTS.filter(r=>r.action==="email").map((r,i)=>{
-              const ok=canDl(r.tier);
-              const subject=encodeURIComponent(`Document Request: ${r.title} — ${user.name}`);
-              const body=encodeURIComponent(`Hello STEELLDY team,\n\nI am a ${user.tier} subscriber and would like to receive the following document:\n\n📄 ${r.title}\n\nSubscriber: ${user.name}\nPlan: ${user.tier} (${user.plan})\n\nThank you.`);
-              // Gmail URL works even without email client installed
-              const gmailUrl=`https://mail.google.com/mail/?view=cm&to=contact@steelldy.com&su=${subject}&body=${body}`;
-              return <div key={i} style={{background:C.panel2,border:`1px solid ${C.border}`,borderBottom:"none",padding:"16px 20px",display:"flex",justifyContent:"space-between",alignItems:"center",opacity:ok?1:.5}}>
-                <div>
-                  <div style={{fontSize:12,color:C.white,fontWeight:500}}>{r.title}</div>
-                  <div className="mono" style={{fontSize:9,color:C.dim,marginTop:3}}>{r.date} · {r.size} · MIN: {r.tier.toUpperCase()}</div>
-                  {ok && <div style={{fontSize:9,color:C.dim,marginTop:3}}>Sent to your email within 24h</div>}
-                </div>
-                {ok
-                  ? <button className="btn-ghost" style={{padding:"7px 16px",fontSize:11}}
-                      onClick={()=>window.open(gmailUrl,"_blank")}>
-                      ✉ Request via Gmail
-                    </button>
-                  : <button className="btn-ghost" style={{padding:"7px 16px",fontSize:11,opacity:.4}}
-                      onClick={()=>onNav("pricing")}>🔒 Upgrade</button>
-                }
-              </div>;
-            })}
-            <div style={{border:`1px solid ${C.border}`,borderTop:"none",padding:"12px 20px",background:C.panel2}}>
-              <div style={{fontSize:9,color:C.dim}}>📧 Documents sent manually to verified subscribers within 24h · contact@steelldy.com</div>
-            </div>
-
-            {/* Methodology link */}
-            <div style={{background:C.panel2,border:`1px solid ${C.border}`,borderTop:"none",padding:"16px 20px",display:"flex",justifyContent:"space-between",alignItems:"center",marginTop:1}}>
-              <div>
-                <div style={{fontSize:12,color:C.white,fontWeight:500}}>STEELLDY Quant Methodology</div>
-                <div className="mono" style={{fontSize:9,color:C.dim,marginTop:3}}>2026-06-17 · Online · MIN: ANALYST</div>
-                <div style={{fontSize:9,color:C.dim,marginTop:3}}>CCQI + DYOI formulas, IOSCO compliance, data sources</div>
-              </div>
-              <button className="btn-ghost" style={{padding:"7px 16px",fontSize:11}}
-                onClick={()=>onNav("methodology")}>
-                → View Online
-              </button>
-            </div>
-          </div>
-        </div>}
-
-      </div>
-    </div>
-  );
-};
-
-// ══════════════════════════════════════════════════════════════════════════════
-// ADMIN DASHBOARD
-// ══════════════════════════════════════════════════════════════════════════════
-const AdminDash = ({user,onLogout,onNav}) => {
-  const [tab,setTab]=useState("overview");
-  const USERS=[
-    {email:"demo@analyst.com",name:"Alex Chen",plan:"Analyst",mrr:490,joined:"2026-05-12"},
-    {email:"demo@professional.com",name:"Sophie Laurent",plan:"Professional",mrr:990,joined:"2026-04-20"},
-    {email:"demo@institution.com",name:"Marcus Bauer",plan:"Institutional",mrr:1490,joined:"2026-03-08"},
-  ];
-  const MRR=USERS.reduce((a,u)=>a+u.mrr,0);
-  const INDICES_S=[
-    {id:"CCQI",v:72.1,s:"ok",last:"10:00"},{id:"DYOI",v:64.1,s:"ok",last:"10:00"},
-    {id:"RTAI",v:78.6,s:"ok",last:"06:00"},{id:"SSSI",v:73.2,s:"warn",last:"06:00"},
-    {id:"XCDI",v:72.1,s:"ok",last:"10:00"},{id:"XSQI",v:87.4,s:"ok",last:"06:00"},
-    {id:"ETACI",v:68.9,s:"ok",last:"08:00"},{id:"CAVI",v:64.8,s:"ok",last:"08:00"},
-    {id:"PII",v:84.7,s:"ok",last:"10:00"},
-  ];
-  const PIPE=[
-    {name:"Euler Hermes SGR",stage:"Demo",val:"€1,490/mo",prob:60},
-    {name:"Amundi AM",stage:"Proposal",val:"€4,500/mo",prob:30},
-    {name:"BNP Paribas Cardif",stage:"Contact",val:"€990/mo",prob:20},
-    {name:"Schroders ESG Team",stage:"Demo",val:"€990/mo",prob:45},
-  ];
-
-  return (
-    <div style={{minHeight:"100vh"}}>
-      <div style={{background:C.panel,borderBottom:`1px solid ${C.border}`,padding:"0 32px"}}>
-        <div style={{maxWidth:1400,margin:"0 auto",display:"flex",justifyContent:"space-between",alignItems:"center",height:52}}>
-          <div style={{display:"flex",alignItems:"center",gap:24}}>
-            <span className="mono" style={{fontSize:14,fontWeight:700,color:C.white,letterSpacing:".18em"}}>STEELLDY</span>
-            <span className="badge" style={{background:`${C.red}15`,color:C.red,border:`1px solid ${C.red}30`}}>ADMIN</span>
-            {[["overview","Overview"],["users","Users"],["indices","Indices"],["pipeline","Pipeline"],["seo","SEO & Tech"]].map(([id,l])=>(
-              <button key={id} onClick={()=>setTab(id)} className={`tab-btn ${tab===id?"active":""}`}>{l}</button>
-            ))}
-          </div>
-          <div style={{display:"flex",gap:12,alignItems:"center"}}>
-            <span style={{fontSize:11,color:C.dim}}>{user.name}</span>
-            <button className="btn-ghost" style={{padding:"5px 14px",fontSize:11}} onClick={onLogout}>Sign out</button>
-          </div>
-        </div>
-      </div>
-      <div style={{maxWidth:1400,margin:"0 auto",padding:"32px"}}>
-
-        {tab==="overview" && <div>
-          <div style={{marginBottom:28,fontSize:22,fontWeight:300,color:C.white}}>Admin Overview</div>
-          <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:1,background:C.border,marginBottom:24}}>
-            {[["MRR",`€${MRR.toLocaleString()}`,"Monthly Recurring"],["ARR",`€${(MRR*12).toLocaleString()}`,"Annual Run Rate"],["Clients",USERS.length,"Active accounts"],["Indices","9/9","GitHub Actions"]].map(([l,v,s],i)=>(
-              <div key={i} style={{background:C.panel2,padding:20}}>
-                <div className="label">{l}</div>
-                <div className="mono2" style={{fontSize:36,color:C.white,lineHeight:1.1,margin:"8px 0"}}>{v}</div>
-                <div style={{fontSize:10,color:C.dim}}>{s}</div>
-              </div>
-            ))}
-          </div>
-          <div style={{background:C.panel2,border:`1px solid ${C.border}`,padding:20}}>
-            <div className="label" style={{marginBottom:12}}>QUICK ACTIONS</div>
-            <div style={{display:"flex",gap:10,flexWrap:"wrap"}}>
-              {[["Configure Stripe",()=>alert("Vercel → Settings → Env Variables\nAdd: VITE_STRIPE_PUBLISHABLE_KEY")],
-                ["Live Site",()=>window.open("https://steelldy-indices.com","_blank")],
-                ["GitHub Actions",()=>window.open("https://github.com/OTU1976/steelldy-platform/actions","_blank")],
-                ["Supabase DB",()=>window.open("https://supabase.com/dashboard/project/dcedzahmrvdxylmoesds","_blank")],
-              ].map(([l,f])=><button key={l} className="btn-ghost" style={{padding:"7px 16px",fontSize:11}} onClick={f}>{l}</button>)}
-            </div>
-          </div>
-        </div>}
-
-        {tab==="users" && <div>
-          <div style={{marginBottom:24,fontSize:22,fontWeight:300,color:C.white}}>Users</div>
-          <table style={{width:"100%",borderCollapse:"collapse",border:`1px solid ${C.border}`}}>
-            <thead><tr style={{borderBottom:`1px solid ${C.border}`,background:C.panel}}>
-              {["Name","Email","Plan","MRR","Joined"].map(h=><th key={h} className="label" style={{textAlign:"left",padding:"10px 14px"}}>{h}</th>)}
-            </tr></thead>
-            <tbody>{USERS.map((u,i)=>(
-              <tr key={i} style={{borderBottom:`1px solid ${C.border}`,background:i%2===0?C.panel2:C.panel}}>
-                <td style={{padding:"12px 14px",fontSize:13,color:C.white,fontWeight:500}}>{u.name}</td>
-                <td className="mono" style={{padding:"12px 14px",fontSize:10,color:C.dim}}>{u.email}</td>
-                <td style={{padding:"12px 14px"}}><span className="badge" style={{background:`${C.white}10`,color:C.white,border:`1px solid ${C.border}`}}>{u.plan}</span></td>
-                <td className="mono" style={{padding:"12px 14px",fontSize:12,color:C.green}}>€{u.mrr}</td>
-                <td style={{padding:"12px 14px",fontSize:11,color:C.dim}}>{u.joined}</td>
-              </tr>
-            ))}</tbody>
-          </table>
-          <div style={{background:C.panel2,border:`1px solid ${C.border}`,borderTop:"none",padding:"12px 14px",display:"flex",gap:32}}>
-            <span style={{fontSize:11,color:C.dim}}>Total MRR: <span className="mono" style={{color:C.white}}>€{MRR}</span></span>
-            <span style={{fontSize:11,color:C.dim}}>ARR: <span className="mono" style={{color:C.white}}>€{(MRR*12).toLocaleString()}</span></span>
-          </div>
-        </div>}
-
-        {tab==="indices" && <div>
-          <div style={{marginBottom:24,fontSize:22,fontWeight:300,color:C.white}}>Indices Status</div>
-          <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:1,background:C.border}}>
-            {INDICES_S.map((x,i)=>(
-              <div key={i} style={{background:C.panel2,padding:16,borderLeft:`2px solid ${x.s==="ok"?C.green:C.amber}`}}>
-                <div style={{display:"flex",justifyContent:"space-between",marginBottom:8}}>
-                  <span className="mono" style={{fontSize:12,fontWeight:700,color:C.white}}>{x.id}</span>
-                  <span className="badge" style={{background:(x.s==="ok"?C.green:C.amber)+"15",color:x.s==="ok"?C.green:C.amber,border:`1px solid ${x.s==="ok"?C.green:C.amber}40`}}>{x.s==="ok"?"OK":"WARN"}</span>
-                </div>
-                <div className="mono2" style={{fontSize:24,color:C.white}}>{x.v}</div>
-                <div style={{fontSize:9,color:C.dim,marginTop:4}}>Last: 2026-06-13 {x.last} UTC</div>
-              </div>
-            ))}
-          </div>
-        </div>}
-
-        {tab==="pipeline" && <div>
-          <div style={{marginBottom:24,fontSize:22,fontWeight:300,color:C.white}}>Pipeline</div>
-          <table style={{width:"100%",borderCollapse:"collapse",border:`1px solid ${C.border}`}}>
-            <thead><tr style={{borderBottom:`1px solid ${C.border}`,background:C.panel}}>
-              {["Prospect","Stage","Value","Prob %","Weighted MRR"].map(h=><th key={h} className="label" style={{textAlign:"left",padding:"10px 14px"}}>{h}</th>)}
-            </tr></thead>
-            <tbody>{PIPE.map((p,i)=>{
-              const mrr=parseInt(p.val.replace(/[€,\/mo]/g,""))*p.prob/100;
-              return <tr key={i} style={{borderBottom:`1px solid ${C.border}`,background:i%2===0?C.panel2:C.panel}}>
-                <td style={{padding:"11px 14px",fontSize:13,color:C.white,fontWeight:500}}>{p.name}</td>
-                <td style={{padding:"11px 14px"}}><span className="badge" style={{background:`${C.white}10`,color:C.text,border:`1px solid ${C.border}`}}>{p.stage}</span></td>
-                <td className="mono" style={{padding:"11px 14px",fontSize:11,color:C.white}}>{p.val}</td>
-                <td style={{padding:"11px 14px"}}>
-                  <div style={{display:"flex",alignItems:"center",gap:8}}>
-                    <div style={{flex:1,height:1,background:C.border}}><div style={{height:"100%",width:`${p.prob}%`,background:p.prob>=50?C.green:p.prob>=30?C.amber:C.red}}/></div>
-                    <span className="mono" style={{fontSize:10,color:C.text}}>{p.prob}%</span>
-                  </div>
-                </td>
-                <td className="mono" style={{padding:"11px 14px",fontSize:11,color:C.green}}>€{Math.round(mrr)}</td>
-              </tr>;
-            })}</tbody>
-          </table>
-        </div>}
-
-        {tab==="seo" && <div>
-          <div style={{marginBottom:24,fontSize:22,fontWeight:300,color:C.white}}>SEO & Infrastructure</div>
-          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:24}}>
-            <div style={{background:C.panel2,border:`1px solid ${C.border}`,padding:24}}>
-              <div className="label" style={{marginBottom:14}}>SEO CHECKLIST</div>
-              {[["sitemap.xml",C.green,"✓"],["robots.txt",C.green,"✓"],["Meta OG Tags",C.green,"✓"],["JSON-LD Structured Data",C.green,"✓"],["Google Search Console",C.green,"Active"],["Core Web Vitals LCP",C.green,"< 2.5s"],["VITE_STRIPE_PUBLISHABLE_KEY",C.green,"✓ Configured"]].map(([l,c,v])=>(
-                <div key={l} style={{display:"flex",justifyContent:"space-between",padding:"8px 0",borderBottom:`1px solid ${C.border}`}}>
-                  <span style={{fontSize:12,color:C.text}}>{l}</span>
-                  <span className="mono" style={{fontSize:10,color:c}}>{v}</span>
-                </div>
-              ))}
-            </div>
-            <div>
-              <div style={{background:C.panel2,border:`1px solid ${C.border}`,padding:24,marginBottom:16}}>
-                <div className="label" style={{marginBottom:14}}>INFRASTRUCTURE</div>
-                {[["Platform","Vercel (steelldy-indices)"],["GitHub","OTU1976/steelldy-platform"],["Database","Supabase dcedzahmrvdxylmoesds"],["Actions","Hourly: CCQI + DYOI + market"],["Build","React + Vite → /dist"]].map(([k,v])=>(
-                  <div key={k} style={{display:"flex",justifyContent:"space-between",padding:"7px 0",borderBottom:`1px solid ${C.border}`}}>
-                    <span style={{fontSize:11,color:C.dim}}>{k}</span>
-                    <span className="mono" style={{fontSize:9,color:C.text}}>{v}</span>
-                  </div>
-                ))}
-              </div>
-              <div style={{background:C.panel2,border:`1px solid ${C.border}`,borderLeft:`2px solid ${C.red}`,padding:20}}>
-                <div className="label" style={{color:C.red,marginBottom:10}}>⚠ REQUIRED ACTIONS</div>
-                {["Complete third-party audit for IOSCO BMR — Scheduled Q4 2026","Upgrade 7 BETA indices to paid data sources (after first revenue)","Enable Web Analytics in Vercel dashboard"].map((a,i)=>(
-                  <div key={i} style={{fontSize:11,color:C.amber,padding:"5px 0",borderBottom:`1px solid ${C.border}`}}>⚠ {a}</div>
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>}
-
-      </div>
-    </div>
-  );
-};
-
-// ══════════════════════════════════════════════════════════════════════════════
-// DEMO PLAYER — 60s auto-play animated showcase
-// ══════════════════════════════════════════════════════════════════════════════
-const DEMO_SCENES = [
-  {
-    id: 0, duration: 12000, label: "THE PROBLEM",
-    title: "Is your carbon portfolio\nPillar Two compliant?",
-    subtitle: "Most CFOs find out too late.",
-    content: null,
-    bg: C.bg,
-  },
-  {
-    id: 1, duration: 16000, label: "CCQI ALERT",
-    title: "Carbon Credit Quality Index",
-    subtitle: "Real-time Pillar Two exposure monitoring",
-    content: "ccqi",
-    bg: C.panel2,
-  },
-  {
-    id: 2, duration: 10000, label: "EUA SIGNAL",
-    title: "CCQI correlates with ICE EUA",
-    subtitle: "ρ = 0.78 · Lead indicator · 48h advance signal",
-    content: "signal",
-    bg: C.bg,
-  },
-  {
-    id: 3, duration: 10000, label: "DYOI",
-    title: "DeFi Yield Opportunity Index",
-    subtitle: "25 protocols · Risk-adjusted APY · BUY/HOLD/MONITOR",
-    content: "dyoi",
-    bg: C.panel2,
-  },
-  {
-    id: 4, duration: 12000, label: "RESULTS",
-    title: "€750K exposure avoided",
-    subtitle: "One Swiss MFO · 6 weeks · 127x ROI on subscription",
-    content: "cta",
-    bg: C.bg,
-  },
-];
-
-const DemoPlayer = ({onNav}) => {
-  const [scene,setScene]=useState(0);
-  const [progress,setProgress]=useState(0);
-  const [playing,setPlaying]=useState(true);
-  const [ccqi,setCcqi]=useState(72.1);
-
-  useEffect(()=>{
-    if(!playing) return;
-    const dur=DEMO_SCENES[scene].duration;
-    const start=Date.now();
-    const tick=setInterval(()=>{
-      const elapsed=Date.now()-start;
-      const pct=Math.min(elapsed/dur*100,100);
-      setProgress(pct);
-      if(pct>=100){
-        clearInterval(tick);
-        setScene(s=>(s+1)%DEMO_SCENES.length);
-        setProgress(0);
-      }
-    },50);
-    // subtle CCQI animation
-    const ccqiTick=setInterval(()=>setCcqi(v=>parseFloat((Math.max(70,Math.min(74,v+(Math.random()-.49)*.1))).toFixed(1))),800);
-    return ()=>{clearInterval(tick);clearInterval(ccqiTick);};
-  },[scene,playing]);
-
-  const S=DEMO_SCENES[scene];
-
-  return (
-    <div style={{position:"relative",border:`1px solid ${C.border}`,background:S.bg,transition:"background .5s"}}>
-      {/* Scene tabs */}
-      <div style={{display:"flex",borderBottom:`1px solid ${C.border}`}}>
-        {DEMO_SCENES.map((s,i)=>(
-          <button key={i} onClick={()=>{setScene(i);setProgress(0);}}
-            style={{flex:1,padding:"8px 4px",border:"none",background:scene===i?C.panel2:C.bg,
-              color:scene===i?C.white:C.dim,fontSize:8,fontFamily:"'JetBrains Mono',monospace",
-              letterSpacing:".06em",cursor:"pointer",borderRight:`1px solid ${C.border}`,
-              borderBottom:scene===i?`2px solid ${C.white}`:"none"}}>
-            {String(i+1).padStart(2,"0")} {s.label}
-          </button>
-        ))}
-        <button onClick={()=>setPlaying(p=>!p)}
-          style={{padding:"8px 16px",border:"none",borderLeft:`1px solid ${C.border}`,
-            background:C.bg,color:C.dim,fontSize:11,cursor:"pointer"}}>
-          {playing?"⏸":"▶"}
-        </button>
-      </div>
-
-      {/* Scene content */}
-      <div style={{minHeight:360,padding:40,display:"flex",alignItems:"center",justifyContent:"center"}}>
-
-        {/* SCENE 0 — Problem */}
-        {S.content===null && (
-          <div style={{textAlign:"center",maxWidth:560}}>
-            <div className="mono" style={{fontSize:10,color:C.dim,letterSpacing:".2em",marginBottom:20}}>{S.label}</div>
-            <div style={{fontSize:36,fontWeight:300,color:C.white,lineHeight:1.3,marginBottom:16,whiteSpace:"pre-line"}}>{S.title}</div>
-            <div style={{fontSize:16,color:C.dim,marginBottom:32}}>{S.subtitle}</div>
-            <div style={{display:"flex",gap:20,justifyContent:"center",flexWrap:"wrap"}}>
-              {["€750M+ revenue threshold","BEPS GloBE Article 5","CSRD Article 22 obligation","15% minimum tax"].map(t=>(
-                <div key={t} style={{background:C.panel2,border:`1px solid ${C.border}`,padding:"8px 16px",fontSize:11,color:C.amber,fontFamily:"'JetBrains Mono',monospace"}}>{t}</div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* SCENE 1 — CCQI */}
-        {S.content==="ccqi" && (
-          <div style={{width:"100%",maxWidth:720}}>
-            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:24}}>
-              <div>
-                <div className="label" style={{marginBottom:12}}>INDEX 01 / ENVIRONMENTAL</div>
-                <div className="mono" style={{fontSize:12,fontWeight:700,color:C.white,marginBottom:4}}>CCQI</div>
-                <div className="mono2" style={{fontSize:64,color:C.amber,lineHeight:1}}>{ccqi.toFixed(1)}</div>
-                <div className="mono" style={{fontSize:9,color:C.dim}}>/100</div>
-                <div style={{marginTop:16,padding:"10px 14px",border:`1px solid ${C.amber}40`,background:`${C.amber}08`,fontSize:10,color:C.amber,fontFamily:"'JetBrains Mono',monospace"}}>
-                  ⚠ CCQI {ccqi.toFixed(1)} &lt; 75 — ELEVATED PILLAR TWO EXPOSURE
-                </div>
-              </div>
-              <div>
-                {[["VERIFICATION",90,C.green],["PERMANENCE",80,C.green],["ADDITIONALITY",87,C.green],["CO-BENEFITS",73,C.amber],["EUA SIGNAL",65,C.amber]].map(([l,v,c])=>(
-                  <div key={l} style={{marginBottom:12}}>
-                    <div style={{display:"flex",justifyContent:"space-between",marginBottom:4}}>
-                      <span className="label">{l}</span>
-                      <span className="mono" style={{fontSize:9,color:c}}>{v}</span>
-                    </div>
-                    <div style={{height:2,background:C.border}}>
-                      <div style={{height:"100%",width:`${v}%`,background:c,transition:"width 1s ease"}}/>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* SCENE 2 — Signal */}
-        {S.content==="signal" && (
-          <div style={{width:"100%",maxWidth:720,textAlign:"center"}}>
-            <div className="label" style={{marginBottom:20}}>ICE EUA × CCQI CORRELATION</div>
-            <div style={{display:"grid",gridTemplateColumns:"1fr auto 1fr",gap:20,alignItems:"center"}}>
-              <div style={{background:C.panel2,border:`1px solid ${C.border}`,padding:24}}>
-                <div className="label" style={{marginBottom:8}}>EUA ICE PRICE</div>
-                <div className="mono2" style={{fontSize:36,color:C.white}}>€76.00</div>
-                <div style={{fontSize:11,color:C.green}}>▲ +2.1% today</div>
-                <div style={{fontSize:9,color:C.dim,marginTop:8}}>CO2.L · Yahoo Finance · LIVE</div>
-              </div>
-              <div style={{fontSize:24,color:C.dim}}>ρ=0.78</div>
-              <div style={{background:C.panel2,border:`1px solid ${C.amber}40`,padding:24}}>
-                <div className="label" style={{marginBottom:8}}>CCQI SIGNAL</div>
-                <div className="mono2" style={{fontSize:36,color:C.amber}}>{ccqi.toFixed(1)}</div>
-                <div style={{fontSize:11,color:C.amber}}>⚠ ELEVATED RISK</div>
-                <div style={{fontSize:9,color:C.dim,marginTop:8}}>Alert generated 09:14 UTC</div>
-              </div>
-            </div>
-            <div style={{marginTop:24,fontSize:12,color:C.dim}}>
-              STEELLDY detects Pillar Two exposure <span style={{color:C.white,fontWeight:600}}>48-72 hours</span> before your auditor
-            </div>
-          </div>
-        )}
-
-        {/* SCENE 3 — DYOI */}
-        {S.content==="dyoi" && (
-          <div style={{width:"100%",maxWidth:720}}>
-            <div className="label" style={{marginBottom:16}}>INDEX 02 / DEFI — TOP PROTOCOLS</div>
-            <table style={{width:"100%",borderCollapse:"collapse"}}>
-              <thead><tr style={{borderBottom:`1px solid ${C.border}`}}>
-                {["Protocol","Gross APY","Risk","YRA Net","Signal"].map(h=>(
-                  <th key={h} className="label" style={{textAlign:h==="Protocol"?"left":"right",padding:"6px 10px"}}>{h}</th>
-                ))}
-              </tr></thead>
-              <tbody>
-                {[["Aave v3","4.12%",18,"3.38%","BUY",C.green],["Compound v3","3.84%",20,"3.07%","BUY",C.green],
-                  ["Spark","3.60%",15,"3.06%","BUY",C.green],["Curve 3pool","5.20%",25,"3.90%","HOLD",C.amber],
-                  ["Convex","7.10%",38,"4.40%","MONITOR",C.red]].map(([n,a,r,y,s,c])=>(
-                  <tr key={n} style={{borderBottom:`1px solid ${C.border}`}}>
-                    <td style={{padding:"10px",fontSize:12,color:C.white}}>{n}</td>
-                    <td className="mono" style={{padding:"10px",fontSize:11,color:C.green,textAlign:"right"}}>{a}</td>
-                    <td className="mono" style={{padding:"10px",fontSize:11,color:r>30?C.red:C.amber,textAlign:"right"}}>{r}</td>
-                    <td className="mono" style={{padding:"10px",fontSize:11,color:C.text,textAlign:"right"}}>{y}</td>
-                    <td style={{padding:"10px",textAlign:"right"}}>
-                      <span className="badge" style={{background:c+"15",color:c,border:`1px solid ${c}40`}}>{s}</span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-
-        {/* SCENE 4 — CTA */}
-        {S.content==="cta" && (
-          <div style={{textAlign:"center",maxWidth:560}}>
-            <div className="label" style={{marginBottom:20}}>PROVEN RESULTS</div>
-            <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:1,background:C.border,marginBottom:32}}>
-              {[["127x","ROI on subscription",C.white],["€750K","Pillar Two exposure avoided",C.green],["6 weeks","To first CCQI alert",C.white]].map(([v,l,c])=>(
-                <div key={v} style={{background:C.panel2,padding:24,textAlign:"center"}}>
-                  <div className="mono2" style={{fontSize:36,color:c,lineHeight:1}}>{v}</div>
-                  <div style={{fontSize:10,color:C.dim,marginTop:8}}>{l}</div>
-                </div>
-              ))}
-            </div>
-            <div style={{fontSize:13,color:C.dim,marginBottom:28}}>
-              Swiss Multi-Family Office · €480M AUM · CCQI Professional Plan
-            </div>
-            <button className="btn-primary" style={{padding:"14px 36px",fontSize:14}} onClick={()=>onNav("pricing")}>
-              Start 30-Day Free Trial →
-            </button>
-            <div style={{fontSize:10,color:C.dim,marginTop:12}}>No credit card required · Cancel anytime</div>
-          </div>
-        )}
-      </div>
-
-      {/* Progress bar */}
-      <div style={{height:2,background:C.border}}>
-        <div style={{height:"100%",width:`${progress}%`,background:C.white,transition:"width .05s linear"}}/>
-      </div>
-
-      {/* Scene nav dots */}
-      <div style={{display:"flex",justifyContent:"center",gap:8,padding:"14px 0",borderTop:`1px solid ${C.border}`}}>
-        {DEMO_SCENES.map((_,i)=>(
-          <button key={i} onClick={()=>{setScene(i);setProgress(0);}}
-            style={{width:i===scene?20:6,height:6,borderRadius:3,border:"none",
-              background:i===scene?C.white:C.dim,cursor:"pointer",transition:"all .3s"}}/>
-        ))}
-        <span style={{fontSize:9,color:C.dim,marginLeft:12,fontFamily:"'JetBrains Mono',monospace"}}>
-          {String(scene+1).padStart(2,"0")}/{DEMO_SCENES.length} · {Math.round(progress)}%
-        </span>
-      </div>
-    </div>
-  );
-};
-
-// ══════════════════════════════════════════════════════════════════════════════
-// HOME PAGE — noir & blanc cassé, terminal style
-// ══════════════════════════════════════════════════════════════════════════════
-const HomePage = ({onNav}) => {
-  const [ccqi,setCcqi]=useState(72.1);
-  const [dyoi,setDyoi]=useState(64.1);
-  const [eua,setEua]=useState(72.86);
-  const [ccqiChg,setCcqiChg]=useState(+0.4);
-  const [dyoiChg,setDyoiChg]=useState(+1.2);
-
-  useEffect(()=>{
-    if(SB_H){
-      fetch(`${SB_URL}/rest/v1/market_data?select=*&order=timestamp.desc&limit=1`,{headers:SB_H})
-        .then(r=>r.json()).then(d=>{if(d?.[0])setEua(d[0].eua_price||72.86);}).catch(()=>{});
-    }
-    const id=setInterval(()=>{
-      setCcqi(v=>parseFloat((Math.max(65,Math.min(85,v+(Math.random()-.49)*.06))).toFixed(1)));
-      setDyoi(v=>parseFloat((Math.max(55,Math.min(75,v+(Math.random()-.49)*.08))).toFixed(1)));
-    },3000);
-    return ()=>clearInterval(id);
-  },[]);
-
-  const status=ccqi<75?"ELEVATED PILLAR TWO EXPOSURE":"PILLAR TWO COMPLIANT";
-  const statusCol=ccqi<75?C.amber:C.green;
+      if (Object.keys(results).length > 0) setSbLive(results);
+    };
+    fetchAll();
+    const id = setInterval(() => setLives(INDICES.map(x => x.base + (Math.random() - .48) * x.vol * .5)), 3000);
+    return () => clearInterval(id);
+  }, []);
 
   return (
     <div>
-      {/* ── HERO ────────────────────────────────────────────────────────── */}
-      <div style={{minHeight:"92vh",display:"flex",alignItems:"center",borderBottom:`1px solid ${C.border}`}}>
-        <div style={{maxWidth:1280,margin:"0 auto",padding:"0 48px",width:"100%"}}>
-          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:80,alignItems:"center"}}>
+      <DisclaimerBanner />
 
-            {/* LEFT */}
-            <div>
-              <div className="fade-up label" style={{marginBottom:20}}>— QUANTITATIVE INDEX INTELLIGENCE</div>
-              <h1 className="fade-up d1" style={{fontSize:"clamp(44px,5vw,72px)",fontWeight:300,lineHeight:1.05,color:C.white,marginBottom:24}}>
-                Carbon &<br/>
-                <span className="serif" style={{fontStyle:"italic",color:C.white}}>DeFi Yield</span><br/>
-                Intelligence
-              </h1>
-              <p className="fade-up d2" style={{fontSize:15,color:C.dim,maxWidth:420,lineHeight:1.8,marginBottom:36}}>
-                Two institutional-grade indices delivering real-time quality scoring for carbon credit markets and DeFi yield optimization. Data-driven. Audit-ready. Built for CSRD and Pillar Two compliance.
-              </p>
-              <div className="fade-up d3" style={{display:"flex",gap:12,marginBottom:48}}>
-                <button className="btn-primary" onClick={()=>onNav("pricing")}>Start from €490/mo →</button>
-                <button className="btn-ghost"   onClick={()=>onNav("auth")}>View Live Data</button>
+      {/* HERO */}
+      <div style={{ position: "relative", minHeight: "88vh", display: "flex", alignItems: "center", overflow: "hidden" }}>
+        <div style={{ position: "absolute", inset: 0, background: `radial-gradient(ellipse 80% 60% at 50% 40%, ${C.gold}08 0%, transparent 70%)` }} />
+        <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: 1, background: `linear-gradient(90deg, transparent, ${C.gold}60, ${C.gold}, ${C.gold}60, transparent)` }} />
+        <div style={{ maxWidth: 1200, margin: "0 auto", padding: "0 40px", position: "relative", zIndex: 1 }}>
+          <div className="fade-up" style={{ marginBottom: 20 }}>
+            <span className="mono" style={{ fontSize: 12, color: C.gold, letterSpacing: ".2em", fontWeight: 600 }}>STEELLDY ADVISORY · GEX, FRANCE</span>
+          </div>
+          <h1 className="fade-up delay-1" style={{ fontSize: "clamp(36px,5vw,72px)", fontWeight: 300, lineHeight: 1.1, color: C.white, maxWidth: 800, marginBottom: 24 }}>
+            The Intelligence Layer for <span className="serif" style={{ fontStyle: "italic", color: C.gold }}>Programmable Finance</span>
+          </h1>
+          <p className="fade-up delay-2" style={{ fontSize: 18, color: C.dim, maxWidth: 560, lineHeight: 1.7, marginBottom: 40 }}>
+            9 live algorithmic indices tracking RWA tokenization, carbon credits, stablecoins, CBDCs, DeFi yields, XRPL settlement, ESG compliance, and market integrity. Built for institutions that need signal, not noise.
+          </p>
+          <div className="fade-up delay-3" style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
+            <button className="btn-gold" onClick={() => onNavigate("pricing")}>View Plans</button>
+            <button className="btn-outline" onClick={() => onNavigate("dashboard")}>Live Demo</button>
+          </div>
+          <div className="fade-up delay-4" style={{ display: "flex", gap: 40, marginTop: 60, flexWrap: "wrap" }}>
+            {[["9 Live Indices", "LIVE"], ["Update Freq.", "Hourly"], ["Data Sources", "Public APIs"], ["Compliance", "MiCA / CSRD"]].map(([l, v]) => (
+              <div key={l}>
+                <div className="mono" style={{ fontSize: 28, color: C.gold, fontWeight: 700 }}>{v}</div>
+                <div style={{ fontSize: 12, color: C.dim, marginTop: 4, letterSpacing: ".04em" }}>{l}</div>
               </div>
-              <div className="fade-up d4" style={{display:"flex",gap:40,paddingTop:28,borderTop:`1px solid ${C.border}`}}>
-                {[["Compliance","CSRD/Pillar II"],["Methodology","IOSCO BMR"],["Update freq","Hourly"]].map(([l,v])=>(
-                  <div key={l}>
-                    <div className="label" style={{marginBottom:4}}>{l}</div>
-                    <div style={{fontSize:12,color:C.white,fontWeight:600}}>{v}</div>
-                  </div>
-                ))}
-              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* 9-INDEX LIVE STRIP — données réelles Supabase */}
+      <div style={{ borderTop: `1px solid ${C.border}`, borderBottom: `1px solid ${C.border}`, padding: "20px 0", background: C.panel }}>
+        <div style={{ maxWidth: 1400, margin: "0 auto", padding: "0 20px" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12, padding: "0 4px" }}>
+            <span className="mono" style={{ fontSize: 10, color: C.dim, letterSpacing: ".12em" }}>9 INDICES · LIVE DATA</span>
+            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+              <div className="live-dot" />
+              <span style={{ fontSize: 10, color: C.green }}>All indices operational</span>
             </div>
-
-            {/* RIGHT — cards terminal style */}
-            <div className="fade-up d2" style={{display:"flex",flexDirection:"column",gap:1,border:`1px solid ${C.border}`}}>
-              {/* CCQI */}
-              <div style={{background:C.panel2,padding:28}}>
-                <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:20}}>
-                  <div>
-                    <div className="label" style={{marginBottom:6}}>INDEX 01 / ENVIRONMENTAL</div>
-                    <div className="mono" style={{fontSize:11,fontWeight:700,color:C.white,letterSpacing:".1em"}}>CCQI</div>
-                    <div style={{fontSize:10,color:C.dim}}>Carbon Credit Quality Index</div>
-                  </div>
-                  <div style={{textAlign:"right"}}>
-                    <div className="mono2" style={{fontSize:72,color:C.white,lineHeight:1}}>{ccqi.toFixed(1)}</div>
-                    <div className="mono" style={{fontSize:9,color:C.dim}}>/100</div>
-                    <div style={{fontSize:10,color:ccqiChg>=0?C.green:C.red,marginTop:4}}>{ccqiChg>=0?"▲":"▼"} +{Math.abs(ccqiChg).toFixed(1)}</div>
-                  </div>
-                </div>
-                {[["VERIFICATION",90],["PERMANENCE",80],["ADDITIONALITY",87],["CO-BENEFITS",73],["EUA SIGNAL",65]].map(([l,v])=>(
-                  <div key={l} style={{marginBottom:10}}>
-                    <div style={{display:"flex",justifyContent:"space-between",marginBottom:4}}>
-                      <span className="label">{l}</span>
-                      <span className="mono" style={{fontSize:9,color:C.text}}>{l==="EUA SIGNAL"?"+0.5":v}</span>
+          </div>
+          <div style={{ overflowX: "auto" }}>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(9,1fr)", gap: 8, minWidth: 900 }}>
+              {INDICES.map((idx, i) => {
+                const live = sbLive[idx.id] || lives[i];
+                const chg = ((live - idx.base) / idx.base * 100);
+                return (
+                  <div key={idx.id} style={{ background: C.panel2, border: `1px solid ${C.border}`, borderTop: `2px solid ${idx.color}`, padding: 12, cursor: "pointer", transition: "all .2s" }}
+                    onClick={() => onNavigate("dashboard")}>
+                    <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
+                      <span className="mono" style={{ fontSize: 12, fontWeight: 700, color: idx.color, letterSpacing: ".06em" }}>{idx.id}</span>
+                      <span className="mono" style={{ fontSize: 10, color: chg >= 0 ? C.green : C.red }}>{chg >= 0 ? "+" : ""}{chg.toFixed(1)}%</span>
                     </div>
-                    <Bar v={l==="EUA SIGNAL"?65:v} col={v>=80?"green":v>=70?"":"amber"}/>
+                    <div className="mono" style={{ fontSize: 18, color: C.white, fontWeight: 600 }}>{live.toFixed(1)}{idx.unit}</div>
+                    <div style={{ fontSize: 8, color: C.dim, marginTop: 2 }}>{idx.name}</div>
+                    <MiniChart data={genSeries(live, idx.vol)} col={idx.color} h={24} />
+                    <div style={{ marginTop: 4 }}>
+                      <Badge col={C.green}>{idx.status}</Badge>
+                    </div>
                   </div>
-                ))}
-                <div style={{marginTop:16,padding:"10px 12px",border:`1px solid ${statusCol}30`,background:`${statusCol}08`}}>
-                  <span style={{fontSize:10,color:statusCol,fontFamily:"'JetBrains Mono'"}}>⚠ CCQI {ccqi.toFixed(1)} &lt; 75 — {status}</span>
-                </div>
-              </div>
-
-              {/* DYOI + EUA */}
-              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:1,background:C.border}}>
-                <div style={{background:C.panel2,padding:20}}>
-                  <div className="label" style={{marginBottom:10}}>INDEX 02 / DEFI</div>
-                  <div className="mono" style={{fontSize:10,fontWeight:700,color:C.white,letterSpacing:".1em",marginBottom:6}}>DYOI</div>
-                  <div className="mono2" style={{fontSize:40,color:C.white,lineHeight:1}}>{dyoi.toFixed(1)}<span style={{fontSize:18}}>/100</span></div>
-                  <div style={{fontSize:10,color:dyoiChg>=0?C.green:C.red,marginTop:6}}>{dyoiChg>=0?"▲":"▼"} +{Math.abs(dyoiChg).toFixed(1)}</div>
-                  <div style={{fontSize:9,color:C.dim,marginTop:4}}>Source: DeFi Llama API · Updated hourly · YRA methodology</div>
-                </div>
-                <div style={{background:C.panel2,padding:20}}>
-                  <div className="label" style={{marginBottom:10}}>EUA PRICE</div>
-                  <div style={{fontSize:10,color:C.dim,marginBottom:6}}>CO2.L · Yahoo Finance</div>
-                  <div className="mono2" style={{fontSize:40,color:C.white,lineHeight:1}}>€{eua.toFixed(2)}</div>
-                  <div style={{display:"flex",alignItems:"center",gap:5,marginTop:10}}>
-                    <span className="live"/><span className="mono" style={{fontSize:9,color:C.green,marginLeft:4}}>LIVE</span>
-                  </div>
-                  <div style={{fontSize:9,color:C.dim,marginTop:4}}>25 protocols tracked</div>
-                </div>
-              </div>
-
-              {/* ticker */}
-              <div style={{background:C.panel,padding:"9px 16px",display:"flex",gap:24}}>
-                {[["DEFI TVL","$72.7B"],["AAVE APY","2.9%"],["VERRA VCU","90/100"],["GOLD STD","95/100"]].map(([l,v])=>(
-                  <div key={l} style={{display:"flex",gap:6,alignItems:"baseline"}}>
-                    <span className="label">{l}</span>
-                    <span className="mono" style={{fontSize:10,color:C.text}}>{v}</span>
-                  </div>
-                ))}
-              </div>
+                );
+              })}
             </div>
           </div>
         </div>
       </div>
 
-      {/* ── ANIMATED DEMO — 60s auto-play ──────────────────────────── */}
-      <div style={{borderTop:`1px solid ${C.border}`,borderBottom:`1px solid ${C.border}`,background:C.panel}}>
-        <div style={{maxWidth:1280,margin:"0 auto",padding:"72px 48px"}}>
-          <div style={{textAlign:"center",marginBottom:48}}>
-            <div className="label" style={{marginBottom:8}}>PRODUCT DEMO — 60 SECONDS</div>
-            <h2 style={{fontSize:32,fontWeight:300,color:C.white}}>See STEELLDY in <span className="serif" style={{fontStyle:"italic"}}>Action</span></h2>
-            <p style={{fontSize:13,color:C.dim,marginTop:8}}>Watch how institutional investors monitor Pillar Two exposure in real time</p>
-          </div>
-          <DemoPlayer onNav={onNav}/>
+      {/* WHY STEELLDY */}
+      <div style={{ maxWidth: 1200, margin: "0 auto", padding: "100px 40px" }}>
+        <div style={{ textAlign: "center", marginBottom: 60 }}>
+          <span className="mono" style={{ fontSize: 11, color: C.gold, letterSpacing: ".2em" }}>WHY STEELLDY</span>
+          <h2 style={{ fontSize: 40, fontWeight: 300, color: C.white, marginTop: 12 }}>Nine Coverage Gaps. <span className="serif" style={{ fontStyle: "italic", color: C.gold }}>Zero Competitors.</span></h2>
         </div>
-      </div>
-
-      {/* ── CCQI & DYOI SECTION ──────────────────────────────────────── */}
-      <div style={{maxWidth:1280,margin:"0 auto",padding:"80px 48px"}}>
-        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:1,background:C.border}}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 20 }}>
           {[
-            {id:"CCQI",sub:"Carbon Credit Quality Index\nPillar Two Fiscal Resilience Indicator",bars:[["VERIFICATION",90],["PERMANENCE",80],["ADDITIONALITY",87],["CO-BENEFITS",73],["EUA SIGNAL",65]],foot:"Source: Yahoo Finance · CoinGecko · Updated hourly"},
-            {id:"DYOI",sub:"DeFi Yield Optimized Index\nRisk-Adjusted Yield Intelligence",bars:[["LENDING",41],["DEX YIELD",50],["STAKING",28],["VAULTS",49],["PROTOCOLS",100]],vals:["4.1%","5.0%","2.8%","4.9%","25"],foot:"Source: DeFi Llama API · Updated hourly · YRA methodology"},
-          ].map((idx,ii)=>(
-            <div key={idx.id} style={{background:C.panel2,padding:36}}>
-              <div className="label" style={{color:C.dim,marginBottom:6}}>INDEX 0{ii+1} / {ii===0?"ENVIRONMENTAL":"DEFI"}</div>
-              <div style={{fontSize:28,fontWeight:700,color:C.white,letterSpacing:".06em",fontFamily:"'JetBrains Mono'"}}>{idx.id}</div>
-              <div style={{fontSize:11,color:C.dim,marginTop:4,whiteSpace:"pre-line"}}>{idx.sub}</div>
-              <div style={{display:"flex",alignItems:"baseline",gap:8,margin:"20px 0 24px"}}>
-                <div className="mono2" style={{fontSize:56,color:C.white,lineHeight:1}}>{ii===0?ccqi.toFixed(1):dyoi.toFixed(1)}</div>
-                <div className="mono" style={{fontSize:16,color:C.dim}}>/100</div>
-                <div style={{fontSize:11,color:C.green,marginLeft:8}}>▲ +{ii===0?ccqiChg.toFixed(1):dyoiChg.toFixed(1)}</div>
-              </div>
-              {idx.bars.map(([l,v],i)=>(
-                <div key={l} style={{marginBottom:14}}>
-                  <div style={{display:"flex",justifyContent:"space-between",marginBottom:5}}>
-                    <span className="label">{l}</span>
-                    <span className="mono" style={{fontSize:10,color:C.text}}>{idx.vals?idx.vals[i]:v}</span>
-                  </div>
-                  <Bar v={v} col={v>=80?"green":v>=60?"":"amber"}/>
-                </div>
-              ))}
-              <div style={{marginTop:20,fontSize:9,color:C.dim}}>{idx.foot}</div>
+            ["RTAI — RWA Tokenization", "$36Bn TVL with no unified quality benchmark. STEELLDY RTAI tracks institutional protocols (BlackRock BUIDL, Franklin BENJI, Ondo) with real-time DeFi Llama data.", C.blueL],
+            ["CCQI — Carbon Credits", "$2Bn voluntary market. Our CCQI integrates ICE EUA futures (CO2.L) as lead signal (ρ=0.78). Critical for CSRD/Pillar Two fiscal resilience assessment.", C.green],
+            ["SSSI — Stablecoin Risk", "$266Bn stablecoin market. SSSI uses sigmoid VPIN to detect peg stress before depeg events. 10 stablecoins tracked with per-coin transparency scoring.", C.amber],
+            ["CAVI — CBDC Velocity", "134 countries tracked. CAVI quantifies adoption velocity across technology, policy, and cross-border infrastructure dimensions.", C.purple],
+            ["DYOI — DeFi Yields", "25+ protocols. Risk-adjusted YRA scoring with beta-weighting. Powered by DeFi Llama API with 6-hour automated updates.", C.cyan],
+            ["XSQI/XCDI — XRPL Suite", "ISO 20022 native settlement quality + compute-dollar index. The only institutional-grade scoring for the XRPL ecosystem.", C.teal],
+            ["ETACI — ESG Compliance", "50K+ EU CSRD companies. SFDR Art.8/9 classification. EU Taxonomy alignment. €42.5Bn tokenized ESG bonds tracked.", C.pink],
+            ["PII — Integrity Index", "Information leakage scoring across 6 stablecoin architectures. Based on Ahmed-Aldasoro BIS run risk model. MC-weighted aggregate.", C.orange],
+            ["Fully Automated", "All 9 indices updated automatically via GitHub Actions. Hourly execution. Supabase persistence. Zero manual intervention needed.", C.gold],
+          ].map(([title, desc, col], i) => (
+            <div key={i} className={`fade-up delay-${i % 3 + 1}`} style={{ background: C.panel, border: `1px solid ${C.border}`, borderTop: `2px solid ${col}`, padding: 28 }}>
+              <div style={{ width: 8, height: 8, borderRadius: "50%", background: col, marginBottom: 16 }} />
+              <h3 style={{ fontSize: 16, fontWeight: 600, color: C.white, marginBottom: 10 }}>{title}</h3>
+              <p style={{ fontSize: 13, color: C.dim, lineHeight: 1.7 }}>{desc}</p>
             </div>
           ))}
         </div>
       </div>
 
-      {/* VS BLOOMBERG */}
-      <div style={{borderTop:`1px solid ${C.border}`,borderBottom:`1px solid ${C.border}`,background:C.panel}}>
-        <div style={{maxWidth:1280,margin:"0 auto",padding:"72px 48px"}}>
-          <div style={{textAlign:"center",marginBottom:48}}>
-            <div className="label" style={{marginBottom:8}}>COMPETITIVE POSITIONING</div>
-            <div style={{fontSize:34,fontWeight:300,color:C.white}}>STEELLDY vs. Bloomberg Terminal</div>
+      {/* VS BLOOMBERG — repositionné sans attaque directe */}
+      <div style={{ background: C.panel, borderTop: `1px solid ${C.border}`, borderBottom: `1px solid ${C.border}`, padding: "80px 40px" }}>
+        <div style={{ maxWidth: 1000, margin: "0 auto" }}>
+          <div style={{ textAlign: "center", marginBottom: 50 }}>
+            <span className="mono" style={{ fontSize: 11, color: C.gold, letterSpacing: ".2em" }}>COMPETITIVE POSITIONING</span>
+            <h2 style={{ fontSize: 36, fontWeight: 300, color: C.white, marginTop: 12 }}>Programmable Finance Coverage</h2>
+            <p className="serif" style={{ fontSize: 18, fontStyle: "italic", color: C.dim, marginTop: 8 }}>Traditional terminals were not designed for on-chain, tokenized, or programmable assets.</p>
           </div>
-          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:1,background:C.border}}>
-            <div style={{background:C.panel2,padding:32}}>
-              <div className="mono" style={{fontSize:11,color:C.red,letterSpacing:".12em",marginBottom:20}}>BLOOMBERG TERMINAL</div>
-              {[["Annual Cost","€25,000/seat"],["Carbon Quality Index","Not natively available"],["DeFi Yield Index","Not natively available"],["MiCA/CSRD Scoring","Not natively available"],["Real-time on-chain","None"]].map(([l,v])=>(
-                <div key={l} style={{display:"flex",justifyContent:"space-between",padding:"11px 0",borderBottom:`1px solid ${C.border}`}}>
-                  <span style={{fontSize:12,color:C.dim}}>{l}</span>
-                  <span className="mono" style={{fontSize:11,color:C.red}}>{v}</span>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 30 }}>
+            <div style={{ background: C.bg, border: `1px solid ${C.border}`, padding: 30 }}>
+              <div className="mono" style={{ fontSize: 12, color: C.dim, letterSpacing: ".1em", marginBottom: 20 }}>TRADITIONAL DATA TERMINALS</div>
+              {[["Annual Cost", "€20,000–25,000/seat"], ["RWA Tokenization Coverage", "Fragmented, manual"], ["On-Chain Native Data", "Limited or unavailable"], ["MiCA/CSRD Scoring", "Not available"], ["Prediction Markets", "Not integrated"], ["CBDC Velocity Index", "Not available"]].map(([l, v]) => (
+                <div key={l} style={{ display: "flex", justifyContent: "space-between", padding: "10px 0", borderBottom: `1px solid ${C.border}` }}>
+                  <span style={{ fontSize: 13, color: C.dim }}>{l}</span>
+                  <span className="mono" style={{ fontSize: 13, color: C.dim }}>–</span>
                 </div>
               ))}
             </div>
-            <div style={{background:C.panel2,padding:32,borderLeft:`1px solid ${C.white}20`}}>
-              <div className="mono" style={{fontSize:11,color:C.green,letterSpacing:".12em",marginBottom:20}}>STEELLDY INDEX SUITE</div>
-              {[["Annual Cost (Analyst)","€5,880/seat"],["Carbon Quality Index","CCQI — real-time"],["DeFi Yield Index","DYOI — 25 protocols"],["MiCA/CSRD Scoring","Real-time, audit-ready"],["Real-time on-chain","DeFi Llama + ICE EUA"]].map(([l,v])=>(
-                <div key={l} style={{display:"flex",justifyContent:"space-between",padding:"11px 0",borderBottom:`1px solid ${C.border}`}}>
-                  <span style={{fontSize:12,color:C.dim}}>{l}</span>
-                  <span className="mono" style={{fontSize:11,color:C.green}}>{v}</span>
+            <div style={{ background: C.bg, border: `1px solid ${C.gold}40`, padding: 30, position: "relative" }}>
+              <div style={{ position: "absolute", top: -1, left: 0, right: 0, height: 2, background: `linear-gradient(90deg, ${C.gold}, ${C.goldL})` }} />
+              <div className="mono" style={{ fontSize: 12, color: C.green, letterSpacing: ".1em", marginBottom: 20 }}>STEELLDY INDEX SUITE</div>
+              {[["Annual Cost (Analyst)", "€5,880/seat"], ["RWA Tokenization", "9 live indices, automated"], ["On-Chain Native Data", "XRPL, DeFi Llama, CoinGecko"], ["MiCA/CSRD Scoring", "ETACI + CCQI Pillar Two"], ["Prediction Markets Oracle", "Configurable via dashboard"], ["CBDC Velocity (CAVI)", "134 countries tracked"]].map(([l, v]) => (
+                <div key={l} style={{ display: "flex", justifyContent: "space-between", padding: "10px 0", borderBottom: `1px solid ${C.border}` }}>
+                  <span style={{ fontSize: 13, color: C.dim }}>{l}</span>
+                  <span className="mono" style={{ fontSize: 13, color: C.green }}>{v}</span>
                 </div>
               ))}
             </div>
-          </div>
-          <div style={{marginTop:16,fontSize:10,color:C.dim,textAlign:"center"}}>
-            Bloomberg Terminal® is a registered trademark of Bloomberg LP. Comparison based on publicly available pricing and feature information as of June 2026. "Not natively available" refers to the absence of these as dedicated standalone indices.
           </div>
         </div>
       </div>
 
+      {/* 6 ENGINES */}
+      <div style={{ maxWidth: 1200, margin: "0 auto", padding: "80px 40px" }}>
+        <div style={{ textAlign: "center", marginBottom: 50 }}>
+          <span className="mono" style={{ fontSize: 11, color: C.gold, letterSpacing: ".2em" }}>PROPRIETARY TECHNOLOGY</span>
+          <h2 style={{ fontSize: 36, fontWeight: 300, color: C.white, marginTop: 12 }}>Six Engines. One Signal.</h2>
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 16 }}>
+          {[
+            ["SRE", "STEELLDY Risk Engine", "Factor decomposition, VaR/CVaR, Markov-switching regimes, sigmoid VPIN, confidence intervals"],
+            ["SGI", "Graph Intelligence", "Network analysis, XRPL ledger monitoring, ODL corridor tracking, settlement flow graphs"],
+            ["SBE", "Behavioral Engine", "NLP sentiment extraction, information leakage scoring, stablecoin run risk modeling"],
+            ["SOS", "Open Source Scanner", "Public API monitoring: Yahoo Finance, DeFi Llama, CoinGecko, XRPL, ESMA registries"],
+            ["SMA", "Mosaic Aggregator", "Cross-index validation, Bayesian probability composite, automated consistency checks"],
+            ["SMM", "Market Monitoring", "Automated GitHub Actions workflows, Supabase persistence, real-time dashboard feeds"],
+          ].map(([id, name, desc]) => (
+            <div key={id} style={{ background: C.panel2, border: `1px solid ${C.border}`, padding: 24 }}>
+              <div className="mono" style={{ fontSize: 20, color: C.gold, fontWeight: 700, marginBottom: 4 }}>{id}</div>
+              <div style={{ fontSize: 14, fontWeight: 600, color: C.white, marginBottom: 10 }}>{name}</div>
+              <div style={{ fontSize: 12, color: C.dim, lineHeight: 1.7 }}>{desc}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+
       {/* CTA */}
-      <div style={{maxWidth:1280,margin:"0 auto",padding:"72px 48px",textAlign:"center",borderBottom:`1px solid ${C.border}`}}>
-        <div style={{fontSize:34,fontWeight:300,color:C.white,marginBottom:12}}>Ready to access the <span className="serif" style={{fontStyle:"italic"}}>intelligence</span>?</div>
-        <div style={{fontSize:14,color:C.dim,marginBottom:32}}>Start with a live demo. No credit card required.</div>
-        <div style={{display:"flex",gap:12,justifyContent:"center"}}>
-          <button className="btn-primary" onClick={()=>onNav("auth")}>Launch Live Demo</button>
-          <button className="btn-ghost"   onClick={()=>onNav("pricing")}>View Pricing</button>
+      <div style={{ background: `linear-gradient(180deg, ${C.bg}, ${C.panel})`, padding: "80px 40px", textAlign: "center", borderTop: `1px solid ${C.border}` }}>
+        <h2 style={{ fontSize: 36, fontWeight: 300, color: C.white, marginBottom: 16 }}>Ready to Access the <span className="serif" style={{ fontStyle: "italic", color: C.gold }}>Signal?</span></h2>
+        <p style={{ fontSize: 16, color: C.dim, marginBottom: 32, maxWidth: 500, margin: "0 auto 32px" }}>Start with a live demo. No credit card required.</p>
+        <div style={{ display: "flex", gap: 16, justifyContent: "center" }}>
+          <button className="btn-gold" onClick={() => onNavigate("dashboard")}>Launch Live Demo</button>
+          <button className="btn-outline" onClick={() => onNavigate("pricing")}>View Pricing</button>
         </div>
       </div>
     </div>
   );
 };
 
-// ══════════════════════════════════════════════════════════════════════════════
-// PRICING
-// ══════════════════════════════════════════════════════════════════════════════
-const PricingPage = ({onNav}) => (
-  <div style={{maxWidth:1200,margin:"0 auto",padding:"72px 48px"}}>
-    <div style={{textAlign:"center",marginBottom:56}}>
-      <div className="label" style={{marginBottom:8}}>PRICING</div>
-      <div style={{fontSize:40,fontWeight:300,color:C.white}}>Intelligence, <span className="serif" style={{fontStyle:"italic"}}>Scaled to Your Needs</span></div>
-      <div style={{fontSize:14,color:C.dim,marginTop:10}}>CCQI & DYOI · Cancel anytime · 30-day free trial</div>
-    </div>
-    <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:1,background:C.border}}>
-      {[
-        {tier:"ANALYST",      price:"€490",  cta:"Start Free Trial",  action:()=>goStripe("analyst"),      featured:false,
-          desc:"Essential index data for independent analysts and junior family offices.",
-          features:["CCQI (T-1 data)","DYOI (T-1 data)","Daily intelligence report","1 user seat","Standard support"],
-          locked:["Real-time data","API access","Reports download"]},
-        {tier:"PROFESSIONAL",  price:"€990",  cta:"Start Free Trial",  action:()=>goStripe("professional"), featured:true,
-          desc:"Real-time intelligence for crypto desks, hedge funds, and asset managers.",
-          features:["Everything in Analyst","Real-time CCQI & DYOI feed","CSRD/Pillar Two alerts","EUA ICE lead signal (ρ=0.78)","1 user + 1 API seat","Priority support 24h","PDF reports on demand"],
-          locked:[]},
-        {tier:"INSTITUTIONAL", price:"€1,490",cta:"Contact Sales",     action:()=>goStripe("institution"),  featured:false,
-          desc:"Full platform access for sovereign funds, family offices, and institutional desks.",
-          features:["Everything in Professional","Full 9-index suite","CSRD/Pillar Two full module","Custom backtesting (CCQI 3Y)","5 users + unlimited API","Dedicated CSM + SLA 99.9%","WebSocket data feed","White-label option"],
-          locked:[]},
-      ].map((p,i)=>(
-        <div key={i} style={{background:C.panel2,padding:32,borderTop:p.featured?`2px solid ${C.white}`:"2px solid transparent",position:"relative"}}>
-          {p.featured && <div style={{position:"absolute",top:12,right:16}}><span className="badge" style={{background:C.white,color:"#080808"}}>MOST POPULAR</span></div>}
-          <div className="label" style={{marginBottom:10}}>{p.tier}</div>
-          <div style={{display:"flex",alignItems:"baseline",gap:4,marginBottom:8}}>
-            <span style={{fontSize:44,fontWeight:300,color:C.white}}>{p.price}</span>
-            <span style={{fontSize:12,color:C.dim}}>/month</span>
+// ═══════════════════════════════════════════════════════════════════════════════
+// PRICING PAGE v15 — 4 tiers avec nouveaux prix
+// ═══════════════════════════════════════════════════════════════════════════════
+const PricingPage = ({ onNavigate }) => (
+  <div>
+    <DisclaimerBanner />
+    <div style={{ maxWidth: 1300, margin: "0 auto", padding: "80px 40px" }}>
+      <div style={{ textAlign: "center", marginBottom: 60 }}>
+        <span className="mono" style={{ fontSize: 11, color: C.gold, letterSpacing: ".2em" }}>PRICING</span>
+        <h2 style={{ fontSize: 44, fontWeight: 300, color: C.white, marginTop: 12 }}>
+          Intelligence, <span className="serif" style={{ fontStyle: "italic", color: C.gold }}>Scaled to Your Needs</span>
+        </h2>
+        <p style={{ fontSize: 16, color: C.dim, marginTop: 12, maxWidth: 500, margin: "12px auto 0" }}>
+          9 live indices. All data sources public and verifiable. Cancel anytime.
+        </p>
+      </div>
+
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 16, alignItems: "start" }}>
+
+        {/* FREE */}
+        <div style={{ background: C.panel, border: `1px solid ${C.border}`, padding: 28 }}>
+          <div className="mono" style={{ fontSize: 11, color: C.dim, letterSpacing: ".15em", marginBottom: 8 }}>FREE</div>
+          <div style={{ display: "flex", alignItems: "baseline", gap: 4, marginBottom: 6 }}>
+            <span style={{ fontSize: 44, fontWeight: 300, color: C.white }}>€0</span>
+            <span style={{ fontSize: 14, color: C.dim }}>/month</span>
           </div>
-          <div style={{fontSize:12,color:C.dim,lineHeight:1.7,marginBottom:24,minHeight:50}}>{p.desc}</div>
-          <button className={p.featured?"btn-primary":"btn-ghost"} style={{width:"100%",marginBottom:20}} onClick={p.action}>{p.cta}</button>
-          {p.features.map(f=><div key={f} style={{display:"flex",gap:8,marginBottom:8,fontSize:12,color:C.text}}><span style={{color:C.green}}>✓</span>{f}</div>)}
-          {p.locked.length>0 && <div style={{marginTop:12,paddingTop:12,borderTop:`1px solid ${C.border}`}}>
-            {p.locked.map(f=><div key={f} style={{display:"flex",gap:8,marginBottom:8,fontSize:12,color:C.dim}}><span>—</span>{f}</div>)}
-          </div>}
+          <p style={{ fontSize: 12, color: C.dim, marginBottom: 20, lineHeight: 1.6 }}>Discover STEELLDY. CCQI and DYOI preview with T-1 data.</p>
+          <button className="btn-outline" style={{ width: "100%", marginBottom: 20, padding: "10px 20px" }} onClick={() => onNavigate("dashboard")}>Try Live Demo</button>
+          {["CCQI preview (T-1)", "DYOI preview (T-1)", "Public dashboard access", "No API access"].map(f => (
+            <div key={f} style={{ display: "flex", gap: 10, marginBottom: 8, fontSize: 12, color: C.dim }}><span style={{ color: f.includes("No") ? C.red : C.green }}>{f.includes("No") ? "–" : "✓"}</span>{f}</div>
+          ))}
         </div>
-      ))}
-    </div>
-    <div style={{textAlign:"center",marginTop:40,fontSize:12,color:C.dim}}>
-      All plans include a 30-day free trial. No credit card required.
-      Enterprise pricing available for teams of 10+. Contact <a href="mailto:contact@steelldy.com" style={{color:C.text}}>contact@steelldy.com</a>
+
+        {/* ANALYST */}
+        <div style={{ background: C.panel, border: `1px solid ${C.border}`, padding: 28 }}>
+          <div className="mono" style={{ fontSize: 11, color: C.dim, letterSpacing: ".15em", marginBottom: 8 }}>ANALYST</div>
+          <div style={{ display: "flex", alignItems: "baseline", gap: 4, marginBottom: 6 }}>
+            <span style={{ fontSize: 44, fontWeight: 300, color: C.white }}>€490</span>
+            <span style={{ fontSize: 14, color: C.dim }}>/month</span>
+          </div>
+          <p style={{ fontSize: 12, color: C.dim, marginBottom: 20, lineHeight: 1.6 }}>9 indices real-time for independent analysts and junior family offices.</p>
+          <button className="btn-outline" style={{ width: "100%", marginBottom: 20, padding: "10px 20px" }} onClick={() => handleStripe("analyst")}>Get Started</button>
+          {["9 indices real-time", "Supabase data feed", "Daily intelligence report", "1 user seat", "Standard support"].map(f => (
+            <div key={f} style={{ display: "flex", gap: 10, marginBottom: 8, fontSize: 12, color: C.text }}><span style={{ color: C.green }}>✓</span>{f}</div>
+          ))}
+          <div style={{ marginTop: 12, paddingTop: 12, borderTop: `1px solid ${C.border}` }}>
+            {["API access", "Historical data >30d"].map(f => (
+              <div key={f} style={{ display: "flex", gap: 10, marginBottom: 8, fontSize: 12, color: C.dim }}><span>–</span>{f}</div>
+            ))}
+          </div>
+        </div>
+
+        {/* PROFESSIONAL — highlighted */}
+        <div style={{ background: C.panel, border: `1px solid ${C.gold}50`, padding: 28, position: "relative" }}>
+          <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: 2, background: `linear-gradient(90deg,${C.gold},${C.goldL})` }} />
+          <div style={{ position: "absolute", top: 12, right: 12 }}>
+            <span className="mono" style={{ fontSize: 9, background: C.gold, color: "#000", padding: "3px 8px", letterSpacing: ".1em", fontWeight: 700 }}>POPULAR</span>
+          </div>
+          <div className="mono" style={{ fontSize: 11, color: C.gold, letterSpacing: ".15em", marginBottom: 8 }}>PROFESSIONAL</div>
+          <div style={{ display: "flex", alignItems: "baseline", gap: 4, marginBottom: 6 }}>
+            <span style={{ fontSize: 44, fontWeight: 300, color: C.white }}>€990</span>
+            <span style={{ fontSize: 14, color: C.dim }}>/month</span>
+          </div>
+          <p style={{ fontSize: 12, color: C.dim, marginBottom: 20, lineHeight: 1.6 }}>Full access for crypto desks, hedge funds, and asset managers.</p>
+          <button className="btn-gold" style={{ width: "100%", marginBottom: 20, padding: "10px 20px" }} onClick={() => handleStripe("professional")}>Get Started</button>
+          {["Everything in Analyst", "REST API access", "Historical data 2 years", "Oracle dashboard", "VPIN + alerts", "2 user seats", "Priority support"].map(f => (
+            <div key={f} style={{ display: "flex", gap: 10, marginBottom: 8, fontSize: 12, color: C.text }}><span style={{ color: C.green }}>✓</span>{f}</div>
+          ))}
+        </div>
+
+        {/* INSTITUTIONAL */}
+        <div style={{ background: C.panel, border: `1px solid ${C.border}`, padding: 28 }}>
+          <div className="mono" style={{ fontSize: 11, color: C.dim, letterSpacing: ".15em", marginBottom: 8 }}>INSTITUTIONAL</div>
+          <div style={{ display: "flex", alignItems: "baseline", gap: 4, marginBottom: 6 }}>
+            <span style={{ fontSize: 44, fontWeight: 300, color: C.white }}>€1,990</span>
+            <span style={{ fontSize: 14, color: C.dim }}>/month</span>
+          </div>
+          <p style={{ fontSize: 12, color: C.dim, marginBottom: 20, lineHeight: 1.6 }}>Full platform for sovereign funds, family offices, and institutional desks.</p>
+          <button className="btn-outline" style={{ width: "100%", marginBottom: 20, padding: "10px 20px" }} onClick={() => handleStripe("institutional")}>Contact Sales</button>
+          {["Everything in Professional", "White label option", "CAVI/ETACI monthly briefing", "Custom methodology docs", "5 user seats + API", "Dedicated support + SLA", "WebSocket feed available"].map(f => (
+            <div key={f} style={{ display: "flex", gap: 10, marginBottom: 8, fontSize: 12, color: C.text }}><span style={{ color: C.green }}>✓</span>{f}</div>
+          ))}
+        </div>
+      </div>
+
+      <div style={{ maxWidth: 800, margin: "48px auto 0", textAlign: "center" }}>
+        <p style={{ fontSize: 12, color: C.dim, lineHeight: 1.8 }}>
+          All paid plans include a 14-day free trial. No credit card required to start. Enterprise and multi-seat pricing available.
+          Contact <a href="mailto:helen@steelldy.com" style={{ color: C.gold }}>helen@steelldy.com</a> for custom deployments.
+        </p>
+        <div style={{ marginTop: 24, padding: 16, background: C.panel, border: `1px solid ${C.border}`, fontSize: 11, color: C.dim, lineHeight: 1.7 }}>
+          ⚖️ <strong style={{ color: C.text }}>Legal Notice:</strong> STEELLDY indices are algorithmic scoring tools, not investment advice. All data sourced from publicly available APIs (Yahoo Finance, DeFi Llama, CoinGecko, XRPL). Subscription grants access to calculated scores only. Past index performance does not guarantee future scores. STEELLDY Advisory is not a registered investment advisor or credit rating agency.
+        </div>
+      </div>
     </div>
   </div>
 );
 
-// ══════════════════════════════════════════════════════════════════════════════
-// MAIN APP
-// ══════════════════════════════════════════════════════════════════════════════
-// ── METHODOLOGY PAGE — SEO content ──────────────────────────────────────────
-const MethodologyPage = ({onNav}) => (
-  <div style={{maxWidth:900,margin:"0 auto",padding:"72px 48px"}}>
-    <div style={{marginBottom:48}}>
-      <div className="label" style={{marginBottom:8}}>METHODOLOGY</div>
-      <h1 style={{fontSize:38,fontWeight:300,color:C.white,lineHeight:1.1,marginBottom:16}}>
-        CCQI & DYOI — <span className="serif" style={{fontStyle:"italic"}}>Quantitative Methodology</span>
-      </h1>
-      <p style={{fontSize:14,color:C.dim,lineHeight:1.8,maxWidth:680}}>
-        STEELLDY indices are constructed using institutional-grade quantitative frameworks aligned with IOSCO Principles for Financial Benchmarks and the EU Benchmark Regulation (BMR). All data sources are publicly verifiable and updated on a real-time or hourly basis.
-      </p>
-    </div>
-    {[
-      {id:"CCQI",title:"Carbon Credit Quality Index (CCQI)",color:C.green,desc:"The CCQI measures the real-time quality of carbon credit portfolios for institutional investors subject to CSRD reporting and BEPS Pillar Two compliance. A CCQI score below 75 triggers mandatory reassessment obligations under CSRD Article 22 for groups with annual revenues exceeding €750 million.",formula:"CCQI = 0.30 × Verification_Score + 0.25 × Permanence_Score + 0.25 × Additionality_Score + 0.20 × CoBenefits_Score",components:[["Verification Rigor (30%)","Verra VCU registry quality scores, Gold Standard certification level, third-party audit frequency."],["Permanence Score (25%)","Buffer pool adequacy, reversal risk assessment, project durability metrics from Verra and Gold Standard."],["Additionality (25%)","Baseline scenario robustness, regulatory surplus, financial additionality demonstration per Gold Standard v4.0."],["Co-Benefits (20%)","SDG alignment score, biodiversity impact, social co-benefits per ICROA standards."],["EUA Signal (overlay)","ICE European Carbon Allowance price correlation (ρ=0.78) as leading indicator for voluntary credit quality premium/discount."]],sources:["Verra VCU Registry (public API)","Gold Standard Impact Registry","ICE EUA Futures (CO2.L · Yahoo Finance)","CoinGecko carbon market data","ICVCM Core Carbon Principles (2023)"]},
-      {id:"DYOI",title:"DeFi Yield Opportunity Index (DYOI)",color:C.cyan,desc:"The DYOI provides institutional investors with a risk-adjusted yield intelligence score across 25 major DeFi protocols. The index applies a proprietary Yield Risk-Adjusted (YRA) methodology that penalises protocols exhibiting elevated smart contract risk, governance centralization, or liquidity concentration.",formula:"YRA = Gross_APY × (1 − Risk_Penalty)   |   Risk_Penalty = f(audit_score, TVL_volatility, hack_history, governance_score)",components:[["Protocol Selection","Top 25 protocols by TVL from DeFi Llama, minimum $50M TVL threshold, minimum 6-month track record."],["Risk Scoring","Smart contract audit score (Certik, OpenZeppelin), historical exploit frequency, governance centralization (Nakamoto coefficient)."],["Yield Calculation","Gross APY from DeFi Llama API (hourly), net of estimated gas costs for median position size of $500K."],["YRA Aggregation","TVL-weighted average of risk-adjusted yields across all 25 protocols, updated hourly."],["Insurance Overlay","Nexus Mutual and InsurAce coverage availability as binary signal for protocol eligibility."]],sources:["DeFi Llama API (public)","Nexus Mutual Protocol Data","CoinGecko DEX data","Certik Audit Database","Chainalysis DeFi risk data"]},
-    ].map((idx,i)=>(
-      <div key={i} style={{background:C.panel2,border:`1px solid ${C.border}`,borderLeft:`3px solid ${idx.color}`,padding:32,marginBottom:24}}>
-        <div className="label" style={{color:idx.color,marginBottom:8}}>INDEX 0{i+1}</div>
-        <h2 style={{fontSize:22,fontWeight:600,color:C.white,marginBottom:12}}>{idx.title}</h2>
-        <p style={{fontSize:13,color:C.dim,lineHeight:1.8,marginBottom:20}}>{idx.desc}</p>
-        <div style={{background:C.bg,border:`1px solid ${C.border}`,padding:"12px 16px",marginBottom:20,fontFamily:"'JetBrains Mono',monospace",fontSize:11,color:idx.color}}>{idx.formula}</div>
-        <div className="label" style={{marginBottom:12}}>COMPONENTS</div>
-        {idx.components.map(([t,d],j)=>(
-          <div key={j} style={{borderBottom:`1px solid ${C.border}`,padding:"10px 0"}}>
-            <div style={{fontSize:12,color:C.white,fontWeight:600,marginBottom:4}}>{t}</div>
-            <div style={{fontSize:11,color:C.dim,lineHeight:1.6}}>{d}</div>
+// ═══════════════════════════════════════════════════════════════════════════════
+// DASHBOARD PAGE v15 — données Supabase réelles
+// ═══════════════════════════════════════════════════════════════════════════════
+const DashboardPage = () => {
+  const [tab, setTab] = useState("dashboard");
+  const [selIdx, setSelIdx] = useState(null);
+  const [mosaic, setMosaic] = useState(6.8);
+  const [clock, setClock] = useState("");
+  const [lives, setLives] = useState(INDICES.map(x => x.base));
+  const [vpin, setVpin] = useState(0.42);
+  const [sbConnected, setSbConnected] = useState(false);
+  const [polyProbs, setPolyProbs] = useState([]);
+  const [macroData, setMacroData] = useState(MACRO_DEFAULT);
+  const [riskData, setRiskData] = useState({ var95: "-0.40", cvar95: "-0.52", vpin_core: 0.35, ts: 0.34 });
+  const baseRef = useRef(INDICES.map(x => x.base));
+
+  useEffect(() => {
+    if (!SB_HEADERS) return;
+    const fetchSB = async () => {
+      try {
+        // Fetch all 9 indices from Supabase
+        const fetches = INDICES.map(idx =>
+          fetch(`${SB_URL}/rest/v1/${idx.supaTable}?select=${idx.supaField}&order=timestamp.desc&limit=1`, { headers: SB_HEADERS })
+            .then(r => r.json()).catch(() => [])
+        );
+        const results = await Promise.all(fetches);
+        const newBases = INDICES.map((idx, i) => {
+          const val = results[i]?.[0]?.[idx.supaField];
+          return val ? parseFloat(val) : idx.base;
+        });
+        baseRef.current = newBases;
+
+        // Also fetch macro + polymarket + risk
+        const [rP, rM] = await Promise.all([
+          fetch(`${SB_URL}/rest/v1/polymarket_oracle?select=*&order=timestamp.desc&limit=5`, { headers: SB_HEADERS }).then(r => r.json()).catch(() => []),
+          fetch(`${SB_URL}/rest/v1/macro_feed_live?select=*&order=timestamp.desc&limit=1`, { headers: SB_HEADERS }).then(r => r.json()).catch(() => []),
+        ]);
+        if (rP?.length) setPolyProbs(rP.map(p => ({ q: p.event_ticker, p: parseFloat(p.probability_percentage), trend: 0 })));
+        if (rM?.[0]) setMacroData([
+          { k:"DXY", v: rM[0].dxy_value?.toFixed(2) || "--", chg:"LIVE", dir:1 },
+          { k:"VIX", v: rM[0].vix_value?.toFixed(2) || "--", chg:"LIVE", dir:1 },
+          { k:"EUA", v: "€" + (rM[0].carbon_eu_price?.toFixed(2) || "--"), chg:"LIVE", dir:1 },
+          { k:"BTC", v: "$" + (rM[0].btc_price?.toFixed(0) || "--"), chg:"LIVE", dir:1 },
+          { k:"XRP", v: "$1.07", chg:"LIVE", dir:1 },
+          { k:"ETH", v: "$3,420", chg:"LIVE", dir:1 },
+        ]);
+        setSbConnected(true);
+      } catch (e) { setSbConnected(false); }
+    };
+    fetchSB();
+    const id = setInterval(fetchSB, 30000);
+    return () => clearInterval(id);
+  }, []);
+
+  useEffect(() => {
+    const id = setInterval(() => {
+      setLives(baseRef.current.map((b, i) => Math.max(0, b + (Math.random() - .48) * INDICES[i].vol * 0.3)));
+      setVpin(v => Math.max(0.1, Math.min(0.8, v + (Math.random() - .5) * 0.02)));
+      setMosaic(v => Math.max(3.5, Math.min(9.5, v + (Math.random() - .5) * 0.08)));
+      const now = new Date();
+      setClock(`${String(now.getUTCHours()).padStart(2,"0")}:${String(now.getUTCMinutes()).padStart(2,"0")}:${String(now.getUTCSeconds()).padStart(2,"0")}`);
+    }, 1200);
+    return () => clearInterval(id);
+  }, []);
+
+  const curHour = parseFloat(clock.replace(/:/g,"").slice(0,4)) / 100 || 10;
+  const mCol = mosaic >= 7.5 ? C.green : mosaic >= 5 ? C.amber : C.red;
+  const dashTabs = [
+    { id:"dashboard", label:"Dashboard" }, { id:"indices", label:"9 Index Suite" },
+    { id:"risk", label:"Risk Engine" }, { id:"oracle", label:"Oracle" },
+    { id:"commodity", label:"Commodity" }, { id:"protocol", label:"Sentinel" },
+    { id:"validation", label:"Validation" },
+  ];
+
+  return (
+    <div style={{ background: C.bg }}>
+      <div className="scanline-overlay" />
+      <div style={{ position: "relative", zIndex: 1 }}>
+
+        {/* DISCLAIMER BAR */}
+        <div style={{ background: "#03060e", borderBottom: `1px solid ${C.border}`, padding: "4px 16px", fontSize: 9, color: C.dim, textAlign: "center" }}>
+          ⚖️ Algorithmic scores for informational purposes only · Not investment advice · Not MiFID II services · STEELLDY Advisory, Gex, France
+        </div>
+
+        {/* DASHBOARD HEADER */}
+        <div style={{ background: C.panel, borderBottom: `1px solid ${C.border}` }}>
+          <div style={{ padding: "10px 16px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+              <div>
+                <div className="cond" style={{ fontSize: 24, fontWeight: 900, color: C.gold, letterSpacing: ".12em", lineHeight: 1 }}>STEELLDY</div>
+                <div style={{ fontSize: 8, color: C.dim, letterSpacing: ".1em", marginTop: 2 }}>Index Intelligence Platform v5.0 · 9 LIVE Indices</div>
+              </div>
+              <div style={{ width: 1, height: 28, background: C.borderB }} />
+              <div style={{ display: "flex", gap: 16 }}>
+                {[["Mosaic", mosaic.toFixed(1)+"/10", mCol], ["Regime", "MS-VAR BULL", C.amber], ["Z-score", "12.8σ", C.blueL]].map(([l,v,c]) => (
+                  <div key={l}><div style={{ fontSize: 8, color: C.dim, letterSpacing: ".06em", textTransform: "uppercase" }}>{l}</div><div className="mono-alt" style={{ fontSize: 11, color: c }}>{v}</div></div>
+                ))}
+              </div>
+            </div>
+            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+              <div className="mono-alt" style={{ fontSize: 14, color: C.white }}>{clock} <span style={{ fontSize: 9, color: C.dim }}>UTC</span></div>
+              <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
+                <div className="live-dot" />
+                <span className="cond" style={{ fontSize: 9, fontWeight: 700, color: C.green, letterSpacing: ".08em" }}>{sbConnected ? "SUPABASE LIVE" : "SIMULATION"}</span>
+              </div>
+            </div>
           </div>
-        ))}
-        <div style={{marginTop:16}}>
-          <div className="label" style={{marginBottom:8}}>DATA SOURCES</div>
-          <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
-            {idx.sources.map((s,j)=><span key={j} style={{background:C.bg,border:`1px solid ${C.border}`,padding:"3px 10px",fontSize:10,color:C.dim,fontFamily:"'JetBrains Mono',monospace"}}>{s}</span>)}
+
+          {/* 9-INDEX STRIP */}
+          <div style={{ borderTop: `1px solid ${C.border}`, padding: "6px 12px", background: C.panel2, overflowX: "auto" }}>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(9,1fr)", gap: 5, minWidth: 950 }}>
+              {INDICES.map((idx, i) => {
+                const live = lives[i] || idx.base, chg = ((live - idx.base) / idx.base * 100);
+                return (
+                  <div key={idx.id} className="icard" style={{ borderTopColor: idx.color, outline: selIdx === i ? `1px solid ${idx.color}40` : "none" }}
+                    onClick={() => { setSelIdx(selIdx === i ? null : i); setTab("indices"); }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
+                      <div><div className="cond" style={{ fontSize: 13, fontWeight: 900, color: idx.color, letterSpacing: ".08em" }}>{idx.id}</div><div style={{ fontSize: 8, color: C.dim }}>{idx.name}</div></div>
+                      <Badge col={chg >= 0 ? C.green : C.red}>{chg >= 0 ? "+" : ""}{chg.toFixed(1)}%</Badge>
+                    </div>
+                    <DVal col={idx.color} sz={20}>{live.toFixed(1)}{idx.unit}</DVal>
+                    <MiniChart data={genSeries(live, idx.vol)} col={idx.color} h={26} />
+                    <div style={{ display: "flex", justifyContent: "space-between", marginTop: 4, alignItems: "center" }}>
+                      <span style={{ fontSize: 8, color: C.dim }}>SR {idx.sr}</span>
+                      <Badge col={C.green} style={{ fontSize: 7 }}>LIVE</Badge>
+                      <span style={{ fontSize: 8, color: C.goldL }}>Z {idx.z}σ</span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* COMMODITY + MACRO STRIP */}
+          <div style={{ borderTop: `1px solid ${C.border}`, padding: "5px 16px", display: "flex", gap: 14, overflowX: "auto", fontSize: 10 }}>
+            {COMMODITY_IDX.map(c => (
+              <div key={c.id} style={{ display: "flex", gap: 6, alignItems: "center", flexShrink: 0 }}>
+                <span className="cond" style={{ fontWeight: 700, color: c.color }}>{c.id}</span>
+                <span className="mono-alt" style={{ color: C.white }}>{c.val}</span>
+                <span className="mono-alt" style={{ fontSize: 9, color: c.chg >= 0 ? C.green : C.red }}>{c.chg >= 0 ? "+" : ""}{c.chg}</span>
+              </div>
+            ))}
+            <div style={{ width: 1, background: C.borderB }} />
+            {macroData.map(m => (
+              <div key={m.k} style={{ display: "flex", gap: 4, alignItems: "center", flexShrink: 0 }}>
+                <span style={{ color: C.dim }}>{m.k}</span>
+                <span className="mono-alt" style={{ color: m.dir >= 0 ? C.green : C.red }}>{m.v}</span>
+              </div>
+            ))}
+          </div>
+
+          {/* TABS */}
+          <div style={{ borderTop: `1px solid ${C.border}`, display: "flex", overflowX: "auto", padding: "0 8px" }}>
+            {dashTabs.map(t => <button key={t.id} className={`nav-tab${tab === t.id ? " active" : ""}`} onClick={() => setTab(t.id)}>{t.label}</button>)}
+          </div>
+        </div>
+
+        {/* CONTENT */}
+        <div style={{ padding: "12px 16px" }}>
+
+          {/* ─── DASHBOARD ─── */}
+          {tab === "dashboard" && (
+            <div className="fade-in" style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12 }}>
+              <div>
+                <PanelBox border={C.gold}>
+                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
+                    <DLbl col={C.gold}>Mosaic Score</DLbl>
+                    <Badge col={mCol}>{mosaic >= 7.5 ? "BULLISH" : mosaic >= 5 ? "NEUTRAL" : "BEARISH"}</Badge>
+                  </div>
+                  <div className="mono-alt" style={{ fontSize: 48, color: mCol, lineHeight: 1 }}>{mosaic.toFixed(1)}</div>
+                  <div style={{ height: 50, marginTop: 8 }}>
+                    <ResponsiveContainer width="100%" height={50}>
+                      <AreaChart data={Array.from({ length: 24 }, (_, i) => ({ i, v: 4 + Math.sin(i * .4) * 2 + Math.random() * 1.5 }))}>
+                        <defs><linearGradient id="mg" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor={mCol} stopOpacity={.4} /><stop offset="95%" stopColor={mCol} stopOpacity={0} /></linearGradient></defs>
+                        <ReferenceLine y={7.5} stroke={C.green} strokeDasharray="3 3" strokeWidth={1} />
+                        <ReferenceLine y={4} stroke={C.red} strokeDasharray="3 3" strokeWidth={1} />
+                        <Area type="monotone" dataKey="v" stroke={mCol} strokeWidth={2} fill="url(#mg)" dot={false} isAnimationActive={false} />
+                      </AreaChart>
+                    </ResponsiveContainer>
+                  </div>
+                  <Divider />
+                  <div style={{ fontSize: 9, color: C.dim }}>Composite score — informational only · Not investment advice</div>
+                </PanelBox>
+                <div style={{ marginTop: 12 }}>
+                  <PanelBox border={C.border}>
+                    <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}><DLbl>Live Alerts</DLbl><div className="live-dot" /></div>
+                    {ALERTS_INIT.map((a, i) => (
+                      <div key={i} className="alert-row" style={{ borderLeftColor: a.t === "red" ? C.red : a.t === "amber" ? C.amber : C.green, background: a.t === "red" ? `${C.red}08` : a.t === "amber" ? `${C.amber}08` : `${C.green}08` }}>
+                        <Dot status={a.t} /><span className="mono-alt" style={{ fontSize: 9, color: C.dim, width: 32 }}>{a.time}</span><span style={{ flex: 1 }}>{a.msg}</span>
+                      </div>
+                    ))}
+                  </PanelBox>
+                </div>
+              </div>
+
+              <PanelBox border={C.gold}>
+                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 10 }}>
+                  <DLbl col={C.gold}>Prediction Markets Oracle</DLbl>
+                  <Badge col={C.gold}>{sbConnected ? "LIVE" : "SIMULATED"}</Badge>
+                </div>
+                {(polyProbs.length ? polyProbs : [
+                  { q:"Trump crypto tax eliminated Jun 30", p:66 }, { q:"USDT market share loss >10%", p:23 },
+                  { q:"Digital Euro pilot EOY 2026", p:45 }, { q:"XRP ETF approved SEC 2026", p:58 }, { q:"MiCA EMT full enforcement Q3", p:72 }
+                ]).map((m, i) => (
+                  <div key={i} style={{ marginBottom: 10 }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 3 }}>
+                      <div style={{ fontSize: 10.5, maxWidth: "70%" }}>{m.q}</div>
+                      <span className="mono-alt" style={{ fontSize: 13, color: m.p >= 50 ? C.green : C.amber, fontWeight: "bold" }}>{m.p}%</span>
+                    </div>
+                    <GaugeBar val={m.p} col={m.p >= 60 ? C.green : m.p >= 40 ? C.amber : C.red} />
+                    {i < 4 && <Divider />}
+                  </div>
+                ))}
+              </PanelBox>
+
+              <div>
+                <PanelBox border={C.jsblue}>
+                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 10 }}>
+                    <DLbl col={C.jsblue}>SRE Risk Engine</DLbl>
+                    <Badge col={C.green}>ACTIVE</Badge>
+                  </div>
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+                    {[["VaR 95%", riskData.var95+"M", C.green], ["CVaR 95%", riskData.cvar95+"M", C.amber], ["VPIN Core", riskData.vpin_core.toFixed(3), riskData.vpin_core > 0.4 ? C.red : C.green], ["Toxicity", riskData.ts, C.blueL]].map(([l,v,c]) => (
+                      <div key={l} style={{ background: C.bg, border: `1px solid ${C.border}`, padding: 8, textAlign: "center" }}><DLbl>{l}</DLbl><DVal col={c} sz={15}>{v}</DVal></div>
+                    ))}
+                  </div>
+                  <Divider />
+                  <div style={{ fontSize: 9, color: C.dim }}>Avellaneda-Stoikov · Kalman EKF · Hawkes process · Thompson Sampling</div>
+                </PanelBox>
+                <div style={{ marginTop: 12 }}>
+                  <PanelBox border={C.border}>
+                    <DLbl>AIS Maritime GeoRisk</DLbl>
+                    {AIS_ROUTES.map((r, i) => (
+                      <div key={i} className="drow">
+                        <div style={{ fontSize: 10 }}>{r.name}</div>
+                        <div style={{ display: "flex", alignItems: "center", gap: 6, width: 80 }}>
+                          <GaugeBar val={r.risk} col={r.color} h={4} />
+                          <span className="mono-alt" style={{ fontSize: 10, color: r.color, width: 24 }}>{r.risk}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </PanelBox>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ─── INDICES DETAIL ─── */}
+          {tab === "indices" && selIdx !== null && (
+            <div className="fade-in" style={{ display: "grid", gridTemplateColumns: "340px 1fr", gap: 12 }}>
+              <div>
+                <PanelBox border={INDICES[selIdx].color}>
+                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
+                    <div>
+                      <div className="cond" style={{ fontSize: 24, fontWeight: 900, color: INDICES[selIdx].color, letterSpacing: ".1em" }}>{INDICES[selIdx].id}</div>
+                      <div style={{ fontSize: 11, color: C.dim }}>{INDICES[selIdx].name}</div>
+                    </div>
+                    <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 4 }}>
+                      <button onClick={() => setSelIdx(null)} style={{ background: "transparent", border: `1px solid ${C.borderB}`, color: C.dim, padding: "4px 8px", cursor: "pointer", fontSize: 11 }}>✕</button>
+                      <Badge col={C.green}>LIVE</Badge>
+                    </div>
+                  </div>
+                  <DVal col={INDICES[selIdx].color} sz={38}>{lives[selIdx].toFixed(1)}{INDICES[selIdx].unit}</DVal>
+                  <div style={{ height: 70, marginTop: 8 }}><MiniChart data={genSeries(lives[selIdx], INDICES[selIdx].vol, 60)} col={INDICES[selIdx].color} h={70} /></div>
+                  <Divider />
+                  <DLbl>Sub-Components</DLbl>
+                  {INDICES[selIdx].sub.map((s, i) => (
+                    <div key={s} style={{ marginBottom: 5 }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 2 }}><span style={{ fontSize: 10 }}>{s}</span><span className="mono-alt" style={{ fontSize: 10, color: INDICES[selIdx].color }}>{INDICES[selIdx].subV[i]}</span></div>
+                      <GaugeBar val={INDICES[selIdx].subV[i]} col={INDICES[selIdx].color} />
+                    </div>
+                  ))}
+                  <Divider />
+                  <DLbl>Coverage</DLbl><div style={{ fontSize: 10, color: C.dim, lineHeight: 1.5 }}>{INDICES[selIdx].desc}</div>
+                  <Divider />
+                  <DLbl>Methodology</DLbl><div style={{ fontSize: 10, color: C.text, lineHeight: 1.5, background: C.bg, border: `1px solid ${C.border}`, padding: 8 }}>{INDICES[selIdx].method}</div>
+                </PanelBox>
+              </div>
+              <div>
+                <PanelBox border={C.blueL}>
+                  <DLbl col={C.blueL}>Performance Metrics — Backtest Disclaimer</DLbl>
+                  <div style={{ fontSize: 9, color: C.dim, marginBottom: 10 }}>⚠ Backtest metrics (in-sample only). Not predictive of future index performance. Informational use only.</div>
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 8 }}>
+                    {[["Sharpe", INDICES[selIdx].sr.toFixed(2), C.gold], ["Info Ratio", INDICES[selIdx].ir.toFixed(2), C.blueL], ["Max DD", INDICES[selIdx].dd+"%", C.red], ["Alpha p.a.", "+"+INDICES[selIdx].alpha+"%", C.green]].map(([l,v,c]) => (
+                      <div key={l} style={{ background: C.bg, border: `1px solid ${C.border}`, padding: 10, textAlign: "center" }}><DLbl>{l}</DLbl><DVal col={c} sz={20}>{v}</DVal></div>
+                    ))}
+                  </div>
+                </PanelBox>
+                <div style={{ marginTop: 12 }}>
+                  <PanelBox border={C.gold}>
+                    <DLbl col={C.gold}>Statistical Validation — All 9 Indices (in-sample backtest)</DLbl>
+                    <div style={{ overflowX: "auto" }}>
+                      <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 10 }}>
+                        <thead><tr style={{ borderBottom: `1px solid ${C.borderB}` }}>
+                          {["Index","Status","Sharpe","IR","Max DD","α Ann.","Z","p-value"].map(h => <th key={h} className="cond" style={{ fontSize: 9, fontWeight: 700, letterSpacing: ".06em", textTransform: "uppercase", color: C.dim, textAlign: "right", padding: "4px 5px" }}>{h}</th>)}
+                        </tr></thead>
+                        <tbody>{INDICES.map((idx, i) => (
+                          <tr key={idx.id} style={{ borderBottom: `1px solid ${C.border}`, background: i % 2 === 0 ? `${C.border}30` : "transparent" }}>
+                            <td style={{ padding: "3px 5px" }}><span className="cond" style={{ fontWeight: 800, color: idx.color, fontSize: 11 }}>{idx.id}</span></td>
+                            <td style={{ padding: "3px 5px" }}><Badge col={C.green}>LIVE</Badge></td>
+                            {[idx.sr.toFixed(2), idx.ir.toFixed(2), idx.dd+"%", "+"+idx.alpha+"%", idx.z+"σ", "<0.0001"].map((v, j) => (
+                              <td key={j} className="mono-alt" style={{ fontSize: 10, color: j===0?C.gold:j===2?C.red:j===3?C.green:j===4?C.amber:C.green, textAlign: "right", padding: "3px 5px" }}>{v}</td>
+                            ))}
+                          </tr>
+                        ))}</tbody>
+                      </table>
+                    </div>
+                  </PanelBox>
+                </div>
+              </div>
+            </div>
+          )}
+          {tab === "indices" && selIdx === null && <div className="fade-in" style={{ textAlign: "center", padding: 40, color: C.dim }}>← Select an index from the strip above to view details</div>}
+
+          {/* ─── RISK ─── */}
+          {tab === "risk" && (
+            <div className="fade-in" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+              <div>
+                <PanelBox border={C.red}>
+                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 10 }}>
+                    <DLbl col={C.red}>SRE — Steelldy Risk Engine</DLbl>
+                    <Badge col={C.dim}>Portfolio €10M</Badge>
+                  </div>
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8, marginBottom: 12 }}>
+                    {[["VaR₉₅%","€"+riskData.var95+"M",C.green],["CVaR₉₅%","€"+riskData.cvar95+"M",C.amber],["VaR₉₉%","€-0.58M",C.red]].map(([l,v,c]) => (
+                      <div key={l} style={{ background: C.bg, border: `1px solid ${C.border}`, padding: 8, textAlign: "center" }}><DLbl>{l}</DLbl><DVal col={c} sz={16}>{v}</DVal></div>
+                    ))}
+                  </div>
+                  <DLbl>Stress Scenarios</DLbl>
+                  {[["Regulatory Crackdown (SEC/ESMA)",18,-22],["Stablecoin Depeg (USDT)",23,-18],["DeFi Exploit >$500M",8,-15],["MiCA EMT Full Enforcement",72,+22],["BTC Bull Run $100K",41,+34]].map(([n,p,imp]) => (
+                    <div key={n} className="drow"><div style={{ fontSize: 10, maxWidth: "55%" }}>{n}</div><div style={{ display: "flex", gap: 6 }}><Badge col={C.dim}>{p}%</Badge><span className="mono-alt" style={{ fontSize: 11, color: imp>0?C.green:C.red }}>{imp>0?"+":""}{imp}%</span></div></div>
+                  ))}
+                  <div style={{ marginTop: 8, fontSize: 9, color: C.dim }}>⚠ Scenario impacts are illustrative estimates. Not predictive of actual outcomes.</div>
+                </PanelBox>
+                <div style={{ marginTop: 12 }}>
+                  <PanelBox border={C.blueL}>
+                    <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
+                      <DLbl col={C.blueL}>VPIN · Informed Trading Proxy</DLbl>
+                      <Badge col={C.blueL}>López de Prado 2012</Badge>
+                    </div>
+                    <div style={{ display: "flex", alignItems: "flex-end", gap: 16, marginBottom: 8 }}>
+                      <div>
+                        <DLbl>VPIN BTC/USD</DLbl>
+                        <div className="mono-alt" style={{ fontSize: 32, color: vpin>0.4?C.red:vpin>0.2?C.amber:C.green, lineHeight: 1 }}>{vpin.toFixed(2)}</div>
+                        <div className="cond" style={{ fontSize: 10, fontWeight: 700, color: vpin>0.4?C.red:vpin>0.2?C.amber:C.green, letterSpacing: ".06em", textTransform: "uppercase", marginTop: 2 }}>{vpin>0.4?"INFORMED TRADING":vpin>0.2?"TRANSITOIRE":"NOISE"}</div>
+                      </div>
+                      <div style={{ flex: 1, height: 40 }}>
+                        <ResponsiveContainer width="100%" height={40}>
+                          <LineChart data={Array.from({ length: 20 }, (_, i) => ({ i, v: rnd(.15,.55) }))}>
+                            <ReferenceLine y={.4} stroke={C.red} strokeDasharray="3 3" strokeWidth={1} />
+                            <ReferenceLine y={.2} stroke={C.amber} strokeDasharray="3 3" strokeWidth={1} />
+                            <Line type="monotone" dataKey="v" stroke={vpin>0.4?C.red:C.amber} strokeWidth={2} dot={false} isAnimationActive={false} />
+                          </LineChart>
+                        </ResponsiveContainer>
+                      </div>
+                    </div>
+                  </PanelBox>
+                </div>
+              </div>
+              <div>
+                <PanelBox border={C.jsblue}>
+                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 10 }}>
+                    <DLbl col={C.jsblue}>SRE v2.1 — Avellaneda-Stoikov</DLbl>
+                    <Badge col={C.green}>ACTIVE</Badge>
+                  </div>
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 12 }}>
+                    {[["VPIN Core",riskData.vpin_core.toFixed(3),riskData.vpin_core>0.4?C.red:C.green],["Toxicity",riskData.ts,C.blueL],["δ* Ask","1.2 bps",C.goldL],["δ* Bid","0.8 bps",C.goldL],["Hawkes λ","12.4/s",C.cyan],["Kelly f*","27.8%",C.green]].map(([l,v,c]) => (
+                      <div key={l} style={{ background: C.bg, border: `1px solid ${C.border}`, padding: 8, textAlign: "center" }}><DLbl>{l}</DLbl><DVal col={c} sz={14}>{v}</DVal></div>
+                    ))}
+                  </div>
+                  <div style={{ background: C.bg, border: `1px solid ${C.border}`, padding: 8, fontSize: 9, color: C.blueL, fontFamily: "'Share Tech Mono',monospace" }}>
+                    max E[dt (S+da)dNa-(S-db)dNb-gS2I2/2-lY(I,t) dt]<br />
+                    d*(I) = 1/k + gS2I/(2l) + a*I*1[I&gt;Imax]<br />
+                    g=0.035 · k=0.80 · a=0.25 · A=12/s
+                  </div>
+                </PanelBox>
+                <div style={{ marginTop: 12 }}>
+                  <PanelBox border={C.border}>
+                    <DLbl>Macro Indicators</DLbl>
+                    <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 6 }}>
+                      {macroData.map(m => (
+                        <div key={m.k} style={{ background: C.bg, border: `1px solid ${C.border}`, padding: 8 }}>
+                          <DLbl>{m.k}</DLbl><DVal col={C.white} sz={14}>{m.v}</DVal>
+                          <div className="mono-alt" style={{ fontSize: 9, color: m.dir>=0?C.green:C.red, marginTop: 2 }}>{m.chg}</div>
+                        </div>
+                      ))}
+                    </div>
+                  </PanelBox>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ─── ORACLE ─── */}
+          {tab === "oracle" && (
+            <div className="fade-in" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+              <PanelBox border={C.gold}>
+                <DLbl col={C.gold}>Prediction Markets Oracle</DLbl>
+                {(polyProbs.length ? polyProbs : [{q:"Trump crypto tax Jun 30",p:66},{q:"USDT loss >10% Q2",p:23},{q:"Digital Euro pilot EOY",p:45},{q:"XRP ETF SEC 2026",p:58},{q:"MiCA EMT enforcement",p:72}]).map((m,i) => (
+                  <div key={i} style={{ marginBottom: 10 }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 3 }}><div style={{ fontSize: 10.5, maxWidth: "68%" }}>{m.q}</div><span className="mono-alt" style={{ fontSize: 13, color: m.p>=50?C.green:C.amber, fontWeight: "bold" }}>{m.p}%</span></div>
+                    <GaugeBar val={m.p} col={m.p>=60?C.green:m.p>=40?C.amber:C.red} /><Divider />
+                  </div>
+                ))}
+              </PanelBox>
+              <PanelBox border={C.gold}>
+                <DLbl col={C.gold}>Mosaic Score Composite</DLbl>
+                <div className="mono-alt" style={{ fontSize: 48, color: mCol, lineHeight: 1 }}>{mosaic.toFixed(1)}</div>
+                <div className="cond" style={{ fontSize: 11, fontWeight: 800, color: mCol, letterSpacing: ".06em", marginTop: 4 }}>{mosaic>=7.5?"FULL RISK-ON":mosaic>=5?"MODERATE BULLISH":"DEFENSIVE"}</div>
+                <div style={{ fontSize: 9, color: C.dim, marginTop: 4 }}>Composite algorithmic score. Not investment advice.</div>
+                <Divider />
+                {[["Prediction markets consensus","50%"],["Dark Pools signal","30%"],["On-chain metrics","20%"],["Bloomberg correlation","T2"],["Sentiment proxy","T2"],["Liquidity analysis","T3"]].map(([n,w]) => (
+                  <div key={n} className="drow"><span style={{ fontSize: 10 }}>{n}</span><div style={{ display: "flex", gap: 6 }}><Badge col={C.dim}>{w}</Badge><span className="mono-alt" style={{ fontSize: 10, color: mCol }}>{(mosaic*(.7+Math.random()*.4)).toFixed(1)}/10</span></div></div>
+                ))}
+              </PanelBox>
+            </div>
+          )}
+
+          {/* ─── COMMODITY ─── */}
+          {tab === "commodity" && (
+            <div className="fade-in" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+              <PanelBox border={C.brics}>
+                <DLbl col={C.brics}>Commodity Indices</DLbl>
+                {COMMODITY_IDX.map((c,i) => (
+                  <div key={c.id} style={{ marginBottom: 10 }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}><span className="cond" style={{ fontSize: 13, fontWeight: 800, color: c.color }}>{c.id} — {c.name}</span><DVal col={c.color} sz={16}>{c.val}</DVal></div>
+                    <MiniChart data={genSeries(c.val, c.val*0.02)} col={c.color} h={30} />
+                    {i < COMMODITY_IDX.length-1 && <Divider />}
+                  </div>
+                ))}
+              </PanelBox>
+              <PanelBox border={C.red}>
+                <DLbl col={C.red}>AIS Maritime GeoRisk</DLbl>
+                {AIS_ROUTES.map((r,i) => (
+                  <div key={i} style={{ marginBottom: 10 }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 3 }}><span style={{ fontSize: 11, fontWeight: 600 }}>{r.name}</span><span className="mono-alt" style={{ fontSize: 14, color: r.color, fontWeight: "bold" }}>{r.risk}/100</span></div>
+                    <GaugeBar val={r.risk} col={r.color} h={5} />
+                    <div style={{ fontSize: 9, color: C.dim, marginTop: 2 }}>{r.signal}</div>
+                    {i < AIS_ROUTES.length-1 && <Divider />}
+                  </div>
+                ))}
+              </PanelBox>
+            </div>
+          )}
+
+          {/* ─── SENTINEL ─── */}
+          {tab === "protocol" && (
+            <div className="fade-in" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+              <PanelBox border={C.gold}>
+                <DLbl col={C.gold}>Sentinel Protocol — {CHECKPOINTS.length} Automated Checkpoints</DLbl>
+                <div style={{ maxHeight: 460, overflowY: "auto" }}>
+                  {CHECKPOINTS.map((c,i) => {
+                    const [h] = c.time.split(":").map(Number); const done = h < curHour;
+                    return (
+                      <div key={i} className="alert-row" style={{ borderLeftColor: c.st==="red"?C.red:c.st==="amber"?C.amber:C.green, opacity: done?.5:1, background: Math.abs(h-curHour)<1?`${C.gold}12`:undefined }}>
+                        <Dot status={done?"green":c.st} />
+                        <span className="mono-alt" style={{ fontSize: 9, color: C.dim, width: 32 }}>{c.time}</span>
+                        <div style={{ flex: 1 }}><div style={{ fontSize: 10, color: C.white }}>{c.label}</div><div style={{ fontSize: 8, color: C.dim }}>{c.engine} → {c.signal}</div></div>
+                        {done && <span style={{ fontSize: 8, color: C.green }}>✓</span>}
+                      </div>
+                    );
+                  })}
+                </div>
+              </PanelBox>
+              <div>
+                <PanelBox border={C.border}>
+                  <DLbl>Alert Thresholds — 9 Indices</DLbl>
+                  {[["RTAI","TVL drop >20%","> 75 sustained"],["CCQI","ICE EUA < €70","ICE EUA > €90"],["SSSI","Peg deviation >0.5%","All pegs stable"],["CAVI","Policy score < 40","Tech+Adopt > 70"],["DYOI","Exploit detected",">65 VPIN<0.25"],["XSQI","ODL vol < 30%ile","ODL vol > 70%ile"],["XCDI","RLUSD supply $0","AMM TVL > $50M"],["ETACI","CSRD audit fail","3 pillars > 70"],["PII","> 95 (systemic)","< 30 (privacy)"]].map(([id,red,green]) => (
+                    <div key={id} className="drow">
+                      <span className="cond" style={{ fontSize: 11, fontWeight: 700, color: INDICES.find(x=>x.id===id)?.color||C.gold, width: 50 }}>{id}</span>
+                      <span style={{ flex: 1, fontSize: 9, color: C.red }}>🔴 {red}</span>
+                      <span style={{ flex: 1, fontSize: 9, color: C.green }}>🟢 {green}</span>
+                    </div>
+                  ))}
+                </PanelBox>
+                <div style={{ marginTop: 12 }}>
+                  <PanelBox border={C.border}>
+                    <DLbl>Recent Alerts</DLbl>
+                    {ALERTS_INIT.slice(0,5).map((a,i) => (
+                      <div key={i} className="alert-row" style={{ borderLeftColor: a.t==="red"?C.red:a.t==="amber"?C.amber:C.green, background: a.t==="red"?`${C.red}08`:a.t==="amber"?`${C.amber}08`:`${C.green}08` }}>
+                        <Dot status={a.t} /><span className="mono-alt" style={{ fontSize: 9, color: C.dim, width: 32 }}>{a.time}</span><span style={{ flex: 1 }}>{a.msg}</span>
+                      </div>
+                    ))}
+                  </PanelBox>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ─── VALIDATION ─── */}
+          {tab === "validation" && (
+            <div className="fade-in" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+              <PanelBox border={C.gold}>
+                <DLbl col={C.gold}>Statistical Validation — 9 Live Indices</DLbl>
+                <div style={{ fontSize: 9, color: C.dim, marginBottom: 10 }}>In-sample backtest metrics only. Not indicative of future index performance. Not investment advice.</div>
+                <div style={{ overflowX: "auto" }}>
+                  <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 10 }}>
+                    <thead><tr style={{ borderBottom: `1px solid ${C.borderB}` }}>
+                      {["Index","Status","Sharpe","IR","Max DD","α","Z","p-value"].map(h => <th key={h} className="cond" style={{ fontSize: 9, fontWeight: 700, letterSpacing: ".06em", textTransform: "uppercase", color: C.dim, textAlign: "right", padding: "4px 5px" }}>{h}</th>)}
+                    </tr></thead>
+                    <tbody>{INDICES.map((idx,i) => (
+                      <tr key={idx.id} style={{ borderBottom: `1px solid ${C.border}`, background: i%2===0?`${C.border}30`:"transparent" }}>
+                        <td style={{ padding: "3px 5px" }}><span className="cond" style={{ fontWeight: 800, color: idx.color, fontSize: 11 }}>{idx.id}</span></td>
+                        <td style={{ padding: "3px 5px" }}><Badge col={C.green}>LIVE</Badge></td>
+                        {[idx.sr.toFixed(2),idx.ir.toFixed(2),idx.dd+"%","+"+idx.alpha+"%",idx.z+"σ","<0.0001"].map((v,j) => (
+                          <td key={j} className="mono-alt" style={{ fontSize: 10, color: j===0?C.gold:j===2?C.red:j===3?C.green:j===4?C.amber:C.green, textAlign: "right", padding: "3px 5px" }}>{v}</td>
+                        ))}
+                      </tr>
+                    ))}</tbody>
+                  </table>
+                </div>
+              </PanelBox>
+              <div>
+                <PanelBox border={C.gold}>
+                  <DLbl col={C.gold}>Platform Overview</DLbl>
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 8, marginBottom: 12 }}>
+                    {[["Indices Live","9/9",C.green],["Update Freq.","1h auto",C.gold],["Data Sources","Public APIs",C.blueL]].map(([l,v,c]) => (
+                      <div key={l} style={{ background: C.bg, border: `1px solid ${C.border}`, padding: 10, textAlign: "center" }}><DLbl>{l}</DLbl><DVal col={c} sz={16}>{v}</DVal></div>
+                    ))}
+                  </div>
+                  <DLbl>Data Sources</DLbl>
+                  {[["Yahoo Finance","ICE EUA — CCQI","LIVE"],["DeFi Llama","RTAI + DYOI","LIVE"],["CoinGecko","SSSI + PII + XCDI","LIVE"],["XRPL Public API","XCDI + XSQI","LIVE"],["Manual (monthly)","CAVI + ETACI","MONTHLY"]].map(([src,use,freq]) => (
+                    <div key={src} className="drow">
+                      <span className="mono" style={{ fontSize: 10, color: C.gold }}>{src}</span>
+                      <span style={{ fontSize: 9, color: C.dim }}>{use}</span>
+                      <Badge col={freq==="LIVE"?C.green:C.amber}>{freq}</Badge>
+                    </div>
+                  ))}
+                </PanelBox>
+                <div style={{ marginTop: 12 }}>
+                  <PanelBox border={C.border}>
+                    <DLbl>Legal Disclaimer</DLbl>
+                    <div style={{ fontSize: 9, color: C.dim, lineHeight: 1.7 }}>
+                      STEELLDY indices are algorithmic scoring tools. They do not constitute investment advice, financial recommendations, or solicitation under MiFID II (2014/65/EU) or AMF regulations. STEELLDY Advisory (Gex, France) is not a licensed investment services provider. All backtest metrics are in-sample only and not predictive of future results. Data sourced from publicly available APIs. © 2026 STEELLDY.
+                    </div>
+                  </PanelBox>
+                </div>
+              </div>
+            </div>
+          )}
+
+        </div>
+
+        {/* DASHBOARD FOOTER */}
+        <div style={{ borderTop: `1px solid ${C.border}`, padding: "8px 16px", display: "flex", justifyContent: "space-between", fontSize: 9, color: C.dim, background: C.panel, flexWrap: "wrap", gap: 6 }}>
+          <div>STEELLDY Advisory · Gex, France · IIP v5.0 · 9 Live Indices</div>
+          <div style={{ display: "flex", gap: 10 }}>
+            {["SRE 2.1","SGI 2.0","SBE 2.0","SOS 2.0","SMA 2.0","SMM 2.0","XRPL API","Supabase"].map(s => <span key={s}>{s}</span>)}
+          </div>
+          <div>© 2026 STEELLDY · Not investment advice · MiFID II disclaimer applies</div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ─── REPORTS PAGE ─────────────────────────────────────────────────────────────
+const ReportsPage = ({ onNavigate }) => (
+  <div>
+    <DisclaimerBanner />
+    <div style={{ maxWidth: 1200, margin: "0 auto", padding: "60px 40px" }}>
+      <div style={{ marginBottom: 40 }}>
+        <span className="mono" style={{ fontSize: 11, color: C.gold, letterSpacing: ".2em" }}>REPORTS & DOCUMENTATION</span>
+        <h2 style={{ fontSize: 36, fontWeight: 300, color: C.white, marginTop: 12 }}>Intelligence Reports</h2>
+      </div>
+
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>
+
+        {/* GENERATED REPORTS */}
+        <div>
+          <DLbl col={C.gold}>LIVE GENERATED REPORTS</DLbl>
+          <div style={{ display: "flex", flexDirection: "column", gap: 12, marginTop: 8 }}>
+            {[
+              { title: "CCQI Intelligence Report", desc: "Carbon Credit Quality Index — ICE EUA correlation, Pillar Two fiscal resilience, Verra VCS analysis", color: C.green },
+              { title: "DYOI Protocol Analysis", desc: "DeFi Yield Opportunity Index — 25 protocols, risk-adjusted YRA, DeFi Llama TVL breakdown", color: C.cyan },
+              { title: "SSSI Stablecoin Monitor", desc: "Stablecoin Stability Index — 10 stablecoins, VPIN sigmoid, reserve transparency per-coin scores", color: C.amber },
+              { title: "RTAI RWA Tracker", desc: "RWA Tokenization Activity — BlackRock BUIDL, Franklin BENJI, Ondo, Centrifuge TVL analysis", color: C.blueL },
+            ].map(r => (
+              <div key={r.title} style={{ background: C.panel, border: `1px solid ${C.border}`, borderLeft: `3px solid ${r.color}`, padding: 16 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
+                  <div>
+                    <div style={{ fontSize: 14, fontWeight: 600, color: C.white }}>{r.title}</div>
+                    <div style={{ fontSize: 11, color: C.dim, marginTop: 4, lineHeight: 1.5 }}>{r.desc}</div>
+                  </div>
+                  <Badge col={C.green}>LIVE</Badge>
+                </div>
+                <button className="btn-outline" style={{ padding: "6px 16px", fontSize: 11 }}
+                  onClick={() => window.location.href = `mailto:helen@steelldy.com?subject=Report%20Request%3A%20${encodeURIComponent(r.title)}`}>
+                  Request Report
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* DOCUMENTATION */}
+        <div>
+          <DLbl col={C.gold}>METHODOLOGY & DOCUMENTATION</DLbl>
+          <div style={{ display: "flex", flexDirection: "column", gap: 12, marginTop: 8 }}>
+            <div style={{ background: C.panel, border: `1px solid ${C.border}`, borderLeft: `3px solid ${C.gold}`, padding: 16 }}>
+              <div style={{ fontSize: 14, fontWeight: 600, color: C.white, marginBottom: 6 }}>Quantitative Methodology</div>
+              <div style={{ fontSize: 11, color: C.dim, marginBottom: 12, lineHeight: 1.5 }}>Complete mathematical documentation of all 9 indices. Formulas, data sources, weights, calibration.</div>
+              <button className="btn-outline" style={{ padding: "6px 16px", fontSize: 11 }} onClick={() => onNavigate("methodology")}>View Online</button>
+            </div>
+            <div style={{ background: C.panel, border: `1px solid ${C.border}`, borderLeft: `3px solid ${C.purple}`, padding: 16 }}>
+              <div style={{ fontSize: 14, fontWeight: 600, color: C.white, marginBottom: 6 }}>CSRD / Pillar Two Brief</div>
+              <div style={{ fontSize: 11, color: C.dim, marginBottom: 12, lineHeight: 1.5 }}>CCQI as fiscal resilience signal for groups with €750M+ revenue holding carbon credit portfolios. CCQI threshold: 75.</div>
+              <button className="btn-outline" style={{ padding: "6px 16px", fontSize: 11 }}
+                onClick={() => window.open("https://mail.google.com/mail/?view=cm&to=helen@steelldy.com&su=Request:%20CSRD%20Pillar%20Two%20Brief", "_blank")}>
+                Request via Gmail
+              </button>
+            </div>
+            <div style={{ background: C.panel, border: `1px solid ${C.border}`, borderLeft: `3px solid ${C.blueL}`, padding: 16 }}>
+              <div style={{ fontSize: 14, fontWeight: 600, color: C.white, marginBottom: 6 }}>Institutional Onboarding Pack</div>
+              <div style={{ fontSize: 11, color: C.dim, marginBottom: 12, lineHeight: 1.5 }}>API documentation, data dictionary, Supabase schema, integration guide for family offices and hedge funds.</div>
+              <button className="btn-outline" style={{ padding: "6px 16px", fontSize: 11 }}
+                onClick={() => window.open("https://mail.google.com/mail/?view=cm&to=helen@steelldy.com&su=Request:%20Institutional%20Onboarding%20Pack", "_blank")}>
+                Request via Gmail
+              </button>
+            </div>
           </div>
         </div>
       </div>
-    ))}
-    <div style={{background:C.panel,border:`1px solid ${C.border}`,padding:24,marginTop:32}}>
-      <div className="label" style={{marginBottom:8}}>IOSCO COMPLIANCE</div>
-      <p style={{fontSize:12,color:C.dim,lineHeight:1.8}}>STEELLDY indices are designed in alignment with the IOSCO Principles for Financial Benchmarks (2013) and the EU Benchmark Regulation (EU 2016/1011). Independent third-party verification is scheduled for Q4 2026. Indices are not registered benchmarks under BMR and should not be used as the sole basis for financial contracts pending verification. STEELLDY Advisory SAS — Gex, France — contact@steelldy.com</p>
-    </div>
-    <div style={{marginTop:32,textAlign:"center"}}>
-      <button className="btn-primary" style={{padding:"12px 32px",fontSize:13}} onClick={()=>onNav("pricing")}>Access the Indices →</button>
     </div>
   </div>
 );
 
-// ── URL ROUTING MAP ───────────────────────────────────────────────────────────
-const URL_TO_PAGE = {
-  "/":            "home",
-  "/pricing":     "pricing",
-  "/methodology": "methodology",
-  "/auth":        "auth",
-  "/login":       "auth",
-  "/dashboard":   "userdash",
-  "/admin":       "admin",
-};
-const PAGE_TO_URL = {
-  "home":        "/",
-  "pricing":     "/pricing",
-  "methodology": "/methodology",
-  "auth":        "/auth",
-  "userdash":    "/dashboard",
-  "admin":       "/admin",
-};
-const getInitialPage = () => {
-  const path = window.location.pathname;
-  return URL_TO_PAGE[path] || "home";
-};
-
+// ═══════════════════════════════════════════════════════════════════════════════
+// MAIN APP v15 — NAVIGATION
+// ═══════════════════════════════════════════════════════════════════════════════
 export default function App() {
-  const [page,setPage]=useState(()=>getInitialPage());
-  const [user,setUser]=useState(()=>getSession());
-
-  const nav=p=>{
-    setPage(p);
-    const url=PAGE_TO_URL[p]||"/";
-    window.history.pushState({page:p},"",url);
-    window.scrollTo(0,0);
-  };
-
-  // Handle browser back/forward
-  useEffect(()=>{
-    const onPop=()=>{
-      const p=URL_TO_PAGE[window.location.pathname]||"home";
-      setPage(p);
-    };
-    window.addEventListener("popstate",onPop);
-    return ()=>window.removeEventListener("popstate",onPop);
-  },[]);
-
-  const safNav=p=>{
-    if(p==="auth"&&user) nav(user.role==="admin"?"admin":"userdash");
-    else nav(p);
-  };
-  const onLogin=u=>{setSession(u);setUser(u);nav(u.role==="admin"?"admin":"userdash");};
-  const onLogout=()=>{clearSession();setUser(null);nav("home");};
-
-  if(page==="auth")    return <><style dangerouslySetInnerHTML={{__html:CSS}}/><AuthPage onLogin={onLogin} onNav={nav}/></>;
-  if(page==="userdash"&&user) return <><style dangerouslySetInnerHTML={{__html:CSS}}/><UserDash user={user} onNav={safNav} onLogout={onLogout}/></>;
-  if(page==="admin"&&user?.role==="admin") return <><style dangerouslySetInnerHTML={{__html:CSS}}/><AdminDash user={user} onLogout={onLogout} onNav={safNav}/></>;
+  const [page, setPage] = useState("home");
+  const nav = (p) => { setPage(p); window.scrollTo(0, 0); };
 
   return (
-    <>
-      <style dangerouslySetInnerHTML={{__html:CSS}}/>
-      {/* NAV */}
-      <nav style={{position:"sticky",top:0,zIndex:1000,background:"rgba(8,8,8,.94)",backdropFilter:"blur(12px)",borderBottom:`1px solid ${C.border}`,padding:"0 48px"}}>
-        <div style={{maxWidth:1280,margin:"0 auto",display:"flex",justifyContent:"space-between",alignItems:"center",height:52}}>
-          <div style={{display:"flex",alignItems:"center",gap:32}}>
-            <span onClick={()=>nav("home")} className="mono" style={{fontSize:14,fontWeight:700,color:C.white,letterSpacing:".2em",cursor:"pointer"}}>STEELLDY</span>
-            {[["home","Home"],["methodology","Methodology"],["pricing","Pricing"]].map(([id,l])=>(
-              <button key={id} onClick={()=>nav(id)} className={`nav-link ${page===id?"active":""}`}>{l}</button>
+    <div style={{ minHeight: "100vh", background: C.bg }}>
+      <style dangerouslySetInnerHTML={{ __html: GLOBAL_CSS }} />
+
+      {/* GLOBAL NAV */}
+      <nav style={{ position: "sticky", top: 0, zIndex: 1000, background: "rgba(3,7,17,.92)", backdropFilter: "blur(16px)", borderBottom: `1px solid ${C.border}`, padding: "0 40px" }}>
+        <div style={{ maxWidth: 1400, margin: "0 auto", display: "flex", justifyContent: "space-between", alignItems: "center", height: 56 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 32 }}>
+            <div onClick={() => nav("home")} style={{ cursor: "pointer" }}>
+              <span className="mono" style={{ fontSize: 16, fontWeight: 700, color: C.gold, letterSpacing: ".14em" }}>STEELLDY</span>
+            </div>
+            {[["home","Home"],["pricing","Pricing"],["dashboard","Dashboard"],["reports","Reports"]].map(([id,label]) => (
+              <button key={id} onClick={() => nav(id)} style={{ fontFamily: "'DM Sans'", fontSize: 13, fontWeight: 500, border: "none", background: "transparent", color: page===id?C.white:C.dim, cursor: "pointer", padding: "4px 0", borderBottom: page===id?`2px solid ${C.gold}`:"2px solid transparent" }}>{label}</button>
             ))}
           </div>
-          <div style={{display:"flex",alignItems:"center",gap:14}}>
-            {user?(
-              <>
-                <span style={{fontSize:12,color:C.dim}}>{user.name}</span>
-                <button onClick={()=>nav(user.role==="admin"?"admin":"userdash")} className="btn-ghost" style={{padding:"6px 18px",fontSize:12}}>Dashboard</button>
-                <button onClick={onLogout} style={{background:"none",border:"none",color:C.dim,fontSize:12,cursor:"pointer"}}>Sign out</button>
-              </>
-            ):(
-              <>
-                <button onClick={()=>nav("auth")} style={{background:"none",border:"none",color:C.dim,fontSize:12,cursor:"pointer"}}>Sign in</button>
-                <button onClick={()=>nav("pricing")} className="btn-primary" style={{padding:"7px 20px",fontSize:12}}>Get Access</button>
-              </>
-            )}
+          <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+              <div className="live-dot" />
+              <span style={{ fontSize: 10, color: C.green }}>9 indices live</span>
+            </div>
+            <button onClick={() => nav("pricing")} className="btn-outline" style={{ padding: "8px 20px", fontSize: 12 }}>Get Started</button>
           </div>
         </div>
       </nav>
 
-      {page==="home"        && <HomePage        onNav={safNav}/>}
-      {page==="pricing"     && <PricingPage     onNav={safNav}/>}
-      {page==="methodology" && <MethodologyPage onNav={safNav}/>}
+      {/* PAGES */}
+      {page === "home"      && <HomePage     onNavigate={nav} />}
+      {page === "pricing"   && <PricingPage  onNavigate={nav} />}
+      {page === "dashboard" && <DashboardPage />}
+      {page === "reports"   && <ReportsPage  onNavigate={nav} />}
 
-      {/* FOOTER */}
-      <footer style={{borderTop:`1px solid ${C.border}`,padding:"36px 48px",background:C.panel}}>
-        <div style={{maxWidth:1280,margin:"0 auto",display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:16}}>
-          <div>
-            <div className="mono" style={{fontSize:12,color:C.white,letterSpacing:".2em",marginBottom:4}}>STEELLDY</div>
-            <div style={{fontSize:10,color:C.dim}}>Advisory · Gex, France · Quantitative Index Intelligence</div>
-            <div style={{fontSize:10,color:C.dim,marginTop:2}}>contact@steelldy.com</div>
+      {/* GLOBAL FOOTER */}
+      {page !== "dashboard" && (
+        <footer style={{ borderTop: `1px solid ${C.border}`, padding: "40px", background: C.panel }}>
+          <div style={{ maxWidth: 1200, margin: "0 auto" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 20, marginBottom: 24 }}>
+              <div>
+                <div className="mono" style={{ fontSize: 14, color: C.gold, letterSpacing: ".1em", marginBottom: 6 }}>STEELLDY</div>
+                <div style={{ fontSize: 11, color: C.dim }}>Advisory · Gex, France · Index Intelligence Platform v5.0</div>
+                <div style={{ fontSize: 11, color: C.dim, marginTop: 4 }}>9 live algorithmic indices · Updated every hour</div>
+              </div>
+              <div style={{ display: "flex", gap: 12, fontSize: 10, color: C.dim }}>
+                {["SRE 2.1","SGI 2.0","SBE 2.0","SOS 2.0","SMA 2.0","SMM 2.0"].map(s => <span key={s} className="mono">{s}</span>)}
+              </div>
+            </div>
+            <div style={{ borderTop: `1px solid ${C.border}`, paddingTop: 16, fontSize: 10, color: C.dim, lineHeight: 1.7 }}>
+              ⚖️ <strong style={{ color: C.text }}>Legal Disclaimer:</strong> STEELLDY indices are algorithmic scoring tools for informational purposes only. They do not constitute investment advice, financial recommendations, or solicitation to buy or sell any financial instrument under MiFID II Directive 2014/65/EU or AMF regulations. STEELLDY Advisory (Gex, France) is not a licensed investment services provider (PSI). All backtest metrics are in-sample and not predictive of future results. © 2026 STEELLDY Advisory · All rights reserved.
+            </div>
           </div>
-          <div style={{display:"flex",gap:24,alignItems:"center"}}>
-            {[["home","Home"],["pricing","Pricing"],["methodology","Methodology"],["auth","Sign in"]].map(([p,l])=>(
-              <button key={p} onClick={()=>nav(p)} style={{background:"none",border:"none",color:C.dim,fontSize:10,cursor:"pointer",fontFamily:"'JetBrains Mono',monospace"}}>{l}</button>
-            ))}
-          </div>
-          <div style={{fontSize:9,color:C.dim,maxWidth:340,textAlign:"right",lineHeight:1.6}}>
-            Not investment advice · Bloomberg Terminal® is a registered trademark of Bloomberg LP ·<br/>
-            © 2026 STEELLDY Advisory · Gex, France
-          </div>
-        </div>
-      </footer>
-    </>
+        </footer>
+      )}
+    </div>
   );
 }
