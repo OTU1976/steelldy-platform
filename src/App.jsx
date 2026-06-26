@@ -15,7 +15,7 @@ const STRIPE_LINKS = {
 };
 const handleStripe = (link) => {
   if (!link) {
-    window.location.href = "/dashboard";
+    window.location.href = "mailto:contact@steelldy.com?subject=Free Account Request&body=Hello, I would like to create a free STEELLDY account. My name is: ";
     return;
   }
   window.location.href = link;
@@ -197,7 +197,7 @@ const HomePage = ({ onNavigate }) => {
           </p>
           <div className="fade-up delay-3" style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
             <button className="btn-gold" onClick={() => onNavigate("pricing")}>View Plans</button>
-            <button className="btn-outline" onClick={() => onNavigate("dashboard")}>Live Demo</button>
+            <button className="btn-outline" onClick={() => onNavigate("pricing")}>View Pricing</button>
           </div>
           <div className="fade-up delay-4" style={{ display: "flex", gap: 40, marginTop: 60, flexWrap: "wrap" }}>
             {[["Portfolio Sharpe", "2.76"], ["Z-Score", "12.8σ"], ["NPV (5Y)", "€23.08M"], ["IRR", "276%"]].map(([l, v]) => (
@@ -316,7 +316,7 @@ const HomePage = ({ onNavigate }) => {
         <h2 style={{ fontSize: 36, fontWeight: 300, color: C.white, marginBottom: 16 }}>Ready to See the <span className="serif" style={{ fontStyle: "italic", color: C.gold }}>Alpha?</span></h2>
         <p style={{ fontSize: 16, color: C.dim, marginBottom: 32, maxWidth: 500, margin: "0 auto 32px" }}>Start with a live demo. No credit card required.</p>
         <div style={{ display: "flex", gap: 16, justifyContent: "center" }}>
-          <button className="btn-gold" onClick={() => onNavigate("dashboard")}>Launch Live Demo</button>
+          <button className="btn-gold" onClick={() => onNavigate("pricing")}>View Plans</button>
           <button className="btn-outline" onClick={() => onNavigate("pricing")}>View Pricing</button>
         </div>
       </div>
@@ -351,7 +351,7 @@ const PricingPage = ({ onNavigate }) => (
         <p style={{ fontSize: 13, color: C.dim, marginBottom: 24, lineHeight: 1.6 }}>
           Discover STEELLDY. CCQI and DYOI preview with T-1 data.
         </p>
-        <button className="btn-outline" style={{ width: "100%", marginBottom: 24 }} onClick={() => onNavigate("dashboard")}>Try Live Demo</button>
+        <button className="btn-outline" style={{ width: "100%", marginBottom: 24 }} onClick={() => handleStripe(STRIPE_LINKS.free)}>Try Live Demo</button>
         {["CCQI preview (T-1)", "DYOI preview (T-1)", "Public dashboard access"].map(f => (
           <div key={f} style={{ display: "flex", gap: 10, marginBottom: 10, fontSize: 12, color: C.text }}><span style={{ color: C.green }}>✓</span>{f}</div>
         ))}
@@ -413,7 +413,7 @@ const PricingPage = ({ onNavigate }) => (
         <p style={{ fontSize: 13, color: C.dim, marginBottom: 24, lineHeight: 1.6 }}>
           Full platform for sovereign funds, family offices, and institutional desks.
         </p>
-        <button className="btn-outline" style={{ width: "100%", marginBottom: 24 }} onClick={() => window.location.href = "mailto:contact@steelldy.com?subject=Institutional Plan"}>Contact Sales</button>
+        <button className="btn-outline" style={{ width: "100%", marginBottom: 24 }} onClick={() => handleStripe(STRIPE_LINKS.institutional)}>Get Started</button>
         {["Everything in Professional", "White label option", "CAVI/ETACI monthly briefing", "Custom methodology docs", "5 user seats + API", "Dedicated support + SLA", "WebSocket feed available"].map(f => (
           <div key={f} style={{ display: "flex", gap: 10, marginBottom: 10, fontSize: 12, color: C.text }}><span style={{ color: C.green }}>✓</span>{f}</div>
         ))}
@@ -962,7 +962,7 @@ export default function App() {
             <div onClick={() => nav("home")} style={{ cursor: "pointer" }}>
               <span className="mono" style={{ fontSize: 16, fontWeight: 700, color: C.gold, letterSpacing: ".14em" }}>STEELLDY</span>
             </div>
-            {[["home", "Home"], ["pricing", "Pricing"], ["dashboard", "Dashboard"]].map(([id, label]) => (
+            {[["home", "Home"], ["pricing", "Pricing"]].map(([id, label]) => (
               <button key={id} onClick={() => nav(id)} style={{ fontFamily: "'DM Sans'", fontSize: 13, fontWeight: 500, border: "none", background: "transparent", color: page === id ? C.white : C.dim, cursor: "pointer", padding: "4px 0", borderBottom: page === id ? `2px solid ${C.gold}` : "2px solid transparent" }}>{label}</button>
             ))}
           </div>
