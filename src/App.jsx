@@ -96,7 +96,7 @@ const INDICES = [
   { id:"XSQI", name:"XRPL Settlement Quality",color:C.teal,  base:87.4, vol:0.6, unit:"", sub:["Throughput","Finality","Comply","Liq"], subV:[92,95,78,84], sr:2.15, ir:1.60, dd:-20, alpha:31, z:7.8,  desc:"XRPL 3-5s finality · RLUSD/EURØP AMM · 40+ ODL corridors · ISO 20022", method:"Settlement speed (25%), regulatory compliance FATF/MiCA (25%), ODL liquidity (25%), ISO 20022 alignment (25%)." },
   { id:"XCDI", name:"XRPL Compute-Dollar",   color:C.goldL, base:72.1, vol:1.0, unit:"", sub:["XRP","RLUSD","EURØP","RWA"], subV:[78,82,71,65], sr:2.45, ir:1.75, dd:-22, alpha:38, z:9.1,  desc:"EMTs pondérés (EURØP, RLUSD, USDC) + XRP + RWA tokenisés XRPL", method:"Market-cap weighted EMTs on XRPL (40%), XRP settlement utility (30%), XRPL-native RWA volume (30%). XRPL WebSocket API, 3-5s update." },
   { id:"ETACI", name:"ESG Tokenized Compliance",color:C.pink, base:68.9, vol:0.7, unit:"", sub:["CSRD","EU Tax.","SFDR","BEPS"], subV:[72,65,74,63], sr:1.85, ir:1.35, dd:-18, alpha:25, z:6.5,  desc:"50K+ EU CSRD companies · ICVCM · SFDR Art.9 · BEPS Pillar 2", method:"CSRD reporting quality (30%), EU Taxonomy alignment (25%), SFDR classification (25%), BEPS compliance (20%)." },
-  { id:"PII",   name:"Proprietary Integrity", color:C.orange, base:84.7, vol:0.9, unit:"", sub:["Insider","Flow","OSINT","Mosaic"], subV:[86,81,88,83], sr:3.20, ir:2.05, dd:-16, alpha:55, z:11.8, desc:"52-signal Mosaic Theory 4.2 · Dark Pools ATS · SpiderFoot OSINT", method:"Insider flow detection (25%), institutional flow analysis (25%), OSINT signal aggregation (25%), Mosaic cross-validation (25%)." },
+  { id:"PII",   name:"Proprietary Integrity", color:C.orange, base:84.7, vol:0.9, unit:"", sub:["Insider","Flow","OSINT","Mosaic"], subV:[86,81,88,83], sr:3.20, ir:2.05, dd:-16, alpha:55, z:11.8, desc:"52-signal SMA composite · Dark Pools ATS · SOS OSINT Scanner", method:"Insider flow detection (25%), institutional flow analysis (25%), OSINT signal aggregation (25%), SMA cross-validation (25%)." },
 ];
 
 const COMMODITY_IDX = [
@@ -116,7 +116,7 @@ const AIS_ROUTES = [
 const ALERTS_INIT = [
   { t:"red",   time:"10:15", msg:"VPIN BTC/USD: 0.42 — INFORMED TRADING. Smart money active." },
   { t:"red",   time:"10:00", msg:"Dark Pool: BTC $100M BUY @ $70,420 (Cumberland OTC)." },
-  { t:"amber", time:"08:30", msg:"SpiderFoot: Ripple regulatory filing — XSQI + XCDI monitoring." },
+  { t:"amber", time:"08:30", msg:"SOS Scanner: Ripple regulatory filing — XSQI + XCDI monitoring." },
   { t:"amber", time:"08:00", msg:"ETACI: CSRD deadline approaching — 50K+ companies affected." },
   { t:"amber", time:"07:14", msg:"GeoRisk Bosphore 85/100 → GRAIN CORRIDOR CRITIQUE." },
   { t:"green", time:"07:00", msg:"XRPL AMM: RLUSD/XRP pool TVL +4.2% → XCDI: 78.3/100." },
@@ -134,22 +134,22 @@ const MACRO_DEFAULT = [
 ];
 
 const CHECKPOINTS = [
-  { time:"05:30", label:"AIS Ormuz Tracking",      engine:"Palantir Gotham 3.8",   signal:"CCQI/Brent corr.",     st:"green" },
-  { time:"06:00", label:"DeFi Llama TVL Update",   engine:"Aladdin Risk 12.4",     signal:"RTAI Volume_Score",    st:"green" },
-  { time:"06:30", label:"ICE EUA Carbon Open",     engine:"Bloomberg Intel.",      signal:"CCQI corr. ρ=0.78",    st:"amber" },
+  { time:"05:30", label:"AIS Ormuz Tracking",      engine:"SGI GeoRisk 3.8",      signal:"CCQI/Brent corr.",     st:"green" },
+  { time:"06:00", label:"DeFi Llama TVL Update",   engine:"SRE Risk Engine 12.4", signal:"RTAI Volume_Score",    st:"green" },
+  { time:"06:30", label:"ICE EUA Carbon Open",     engine:"SMA Intelligence",     signal:"CCQI corr. ρ=0.78",    st:"amber" },
   { time:"07:00", label:"XRPL AMM/DEX Scan",       engine:"XRPL WebSocket API",   signal:"XCDI + XSQI update",   st:"green" },
-  { time:"07:15", label:"Polymarket Refresh",       engine:"Polymarket Oracle 1.0", signal:"All 9 indices",        st:"green" },
-  { time:"07:30", label:"Kalshi Cross-Validate",   engine:"Kalshi CFTC",           signal:"Divergence check",     st:"green" },
-  { time:"08:00", label:"CSRD/ESG Scan",           engine:"ACPR/ESMA Filings",     signal:"ETACI update",         st:"green" },
-  { time:"08:15", label:"VIX Futures CME",         engine:"Aladdin Risk 12.4",     signal:"DYOI risk adj.",       st:"green" },
-  { time:"08:30", label:"SpiderFoot OSINT",        engine:"SpiderFoot 4.2",        signal:"PII + regulatory",     st:"amber" },
-  { time:"09:00", label:"XRPL ODL Volume",         engine:"XRPL Ledger API",       signal:"XSQI + XCDI flows",   st:"green" },
-  { time:"10:00", label:"Dark Pools ATS Scan",     engine:"Bloomberg BVAL",        signal:"Blocks >$10M",         st:"red"   },
-  { time:"10:15", label:"VPIN Calculation",        engine:"López de Prado",        signal:"Informed trading %",   st:"red"   },
-  { time:"12:00", label:"Mosaic Score Midday",     engine:"Mosaic Theory 4.2",     signal:"52 signals",           st:"amber" },
-  { time:"17:00", label:"Rebalancing Signal",      engine:"Aladdin Risk 12.4",     signal:"Weekly: EXECUTE",      st:"amber" },
-  { time:"21:00", label:"Mosaic Score Final",      engine:"Mosaic Theory 4.2",     signal:"52 signals daily",     st:"amber" },
-  { time:"23:00", label:"Intelligence Report",     engine:"Auto-Generated",        signal:"Email → subscribers",  st:"green" },
+  { time:"07:15", label:"Prediction Markets Scan", engine:"STEELLDY Oracle 1.0",  signal:"All 9 indices",        st:"green" },
+  { time:"07:30", label:"Oracle Cross-Validate",   engine:"STEELLDY Oracle 1.0",  signal:"Divergence check",     st:"green" },
+  { time:"08:00", label:"CSRD/ESG Scan",           engine:"ACPR/ESMA Filings",    signal:"ETACI update",         st:"green" },
+  { time:"08:15", label:"VIX Futures CME",         engine:"SRE Risk Engine 12.4", signal:"DYOI risk adj.",       st:"green" },
+  { time:"08:30", label:"OSINT Regulatory Scan",   engine:"SOS Scanner 4.2",      signal:"PII + regulatory",     st:"amber" },
+  { time:"09:00", label:"XRPL ODL Volume",         engine:"XRPL Ledger API",      signal:"XSQI + XCDI flows",    st:"green" },
+  { time:"10:00", label:"Dark Pools ATS Scan",     engine:"SMA Intelligence",     signal:"Blocks >$10M",         st:"red"   },
+  { time:"10:15", label:"VPIN Calculation",        engine:"SMM Market Engine",    signal:"Informed trading %",   st:"red"   },
+  { time:"12:00", label:"Mosaic Score Midday",     engine:"SMA Aggregator 4.2",   signal:"52 signals",           st:"amber" },
+  { time:"17:00", label:"Rebalancing Signal",      engine:"SRE Risk Engine 12.4", signal:"Weekly: EXECUTE",      st:"amber" },
+  { time:"21:00", label:"Mosaic Score Final",      engine:"SMA Aggregator 4.2",   signal:"52 signals daily",     st:"amber" },
+  { time:"23:00", label:"Intelligence Report",     engine:"Auto-Generated",       signal:"Email → subscribers",  st:"green" },
 ];
 
 // ─── HELPERS ─────────────────────────────────────────────────────────────────
@@ -277,8 +277,8 @@ const HomePage = ({ onNavigate }) => {
         <div style={{ maxWidth: 1000, margin: "0 auto" }}>
           <div style={{ textAlign: "center", marginBottom: 50 }}>
             <span className="mono" style={{ fontSize: 11, color: C.gold, letterSpacing: ".2em" }}>COMPETITIVE POSITIONING</span>
-            <h2 style={{ fontSize: 36, fontWeight: 300, color: C.white, marginTop: 12 }}>STEELLDY vs. Bloomberg Terminal</h2>
-            <p className="serif" style={{ fontSize: 18, fontStyle: "italic", color: C.dim, marginTop: 8 }}>"We don't replace Bloomberg. We make Bloomberg obsolete for programmable finance."</p>
+            <h2 style={{ fontSize: 36, fontWeight: 300, color: C.white, marginTop: 12 }}>STEELLDY vs. Traditional Terminal</h2>
+            <p className="serif" style={{ fontSize: 18, fontStyle: "italic", color: C.dim, marginTop: 8 }}>"We don't replace traditional data terminals. We make them obsolete for programmable finance."</p>
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 30 }}>
             <div style={{ background: C.bg, border: `1px solid ${C.border}`, padding: 30 }}>
@@ -293,7 +293,7 @@ const HomePage = ({ onNavigate }) => {
             <div style={{ background: C.bg, border: `1px solid ${C.gold}40`, padding: 30, position: "relative" }}>
               <div style={{ position: "absolute", top: -1, left: 0, right: 0, height: 2, background: `linear-gradient(90deg, ${C.gold}, ${C.goldL})` }} />
               <div className="mono" style={{ fontSize: 12, color: C.green, letterSpacing: ".1em", marginBottom: 20 }}>STEELLDY INDEX SUITE</div>
-              {[["Annual Cost (Analyst)", "€5,880/seat"], ["RWA Coverage", "50+ protocols, unified"], ["On-Chain Data", "XRPL, DeFi, native"], ["MiCA/CSRD Scoring", "ETACI index, real-time"], ["Prediction Markets", "Polymarket + Kalshi Oracle"]].map(([l, v]) => (
+              {[["Annual Cost (Analyst)", "€5,880/seat"], ["RWA Coverage", "50+ protocols, unified"], ["On-Chain Data", "XRPL, DeFi, native"], ["MiCA/CSRD Scoring", "ETACI index, real-time"], ["Prediction Markets", "STEELLDY Oracle Integration"]].map(([l, v]) => (
                 <div key={l} style={{ display: "flex", justifyContent: "space-between", padding: "10px 0", borderBottom: `1px solid ${C.border}` }}>
                   <span style={{ fontSize: 13, color: C.dim }}>{l}</span>
                   <span className="mono" style={{ fontSize: 13, color: C.green }}>{v}</span>
@@ -624,7 +624,7 @@ const DashboardPage = () => {
               </div>
 
               <PanelBox border={C.gold}>
-                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 10 }}><DLbl col={C.gold}>Polymarket / Kalshi Oracle</DLbl><Badge col={C.gold}>{sbConnected ? "LIVE" : "SIMULATED"}</Badge></div>
+                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 10 }}><DLbl col={C.gold}>STEELLDY Oracle Intelligence</DLbl><Badge col={C.gold}>{sbConnected ? "LIVE" : "SIMULATED"}</Badge></div>
                 {(polyProbs.length ? polyProbs : [
                   { q: "Trump crypto tax eliminated Jun 30", p: 66 }, { q: "USDT market share loss >10%", p: 23 },
                   { q: "Digital Euro pilot EOY 2026", p: 45 }, { q: "XRP ETF approved SEC 2026", p: 58 }, { q: "MiCA EMT full enforcement Q3", p: 72 }
@@ -733,7 +733,7 @@ const DashboardPage = () => {
             <div className="fade-in" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
               <div>
                 <PanelBox border={C.red}>
-                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 10 }}><DLbl col={C.red}>Aladdin Risk Engine 12.4</DLbl><Badge col={C.dim}>Portfolio €10M</Badge></div>
+                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 10 }}><DLbl col={C.red}>SRE Risk Engine 12.4</DLbl><Badge col={C.dim}>Portfolio €10M</Badge></div>
                   <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8, marginBottom: 12 }}>
                     {[["VaR₉₅%", "€" + riskData.var95 + "M", C.green], ["CVaR₉₅%", "€" + riskData.cvar95 + "M", C.amber], ["VaR₉₉%", "€-0.58M", C.red]].map(([l, v, c]) => (
                       <div key={l} style={{ background: C.bg, border: `1px solid ${C.border}`, padding: 8, textAlign: "center" }}><DLbl>{l}</DLbl><DVal col={c} sz={16}>{v}</DVal></div>
@@ -746,7 +746,7 @@ const DashboardPage = () => {
                 </PanelBox>
                 <div style={{ marginTop: 12 }}>
                   <PanelBox border={C.blueL}>
-                    <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}><DLbl col={C.blueL}>VPIN · Dark Pools ATS</DLbl><Badge col={C.blueL}>López de Prado 2012</Badge></div>
+                    <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}><DLbl col={C.blueL}>VPIN · Dark Pools ATS</DLbl><Badge col={C.blueL}>SMM Engine 2.1</Badge></div>
                     <div style={{ display: "flex", alignItems: "flex-end", gap: 16, marginBottom: 8 }}>
                       <div>
                         <DLbl>VPIN BTC/USD</DLbl>
@@ -782,7 +782,7 @@ const DashboardPage = () => {
                 </PanelBox>
                 <div style={{ marginTop: 12 }}>
                   <PanelBox border={C.border}>
-                    <DLbl>Bloomberg Intelligence · Macro</DLbl>
+                    <DLbl>SMA Intelligence · Macro</DLbl>
                     <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 6 }}>
                       {macroData.map(m => (
                         <div key={m.k} style={{ background: C.bg, border: `1px solid ${C.border}`, padding: 8 }}>
@@ -801,7 +801,7 @@ const DashboardPage = () => {
           {tab === "oracle" && (
             <div className="fade-in" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
               <PanelBox border={C.gold}>
-                <DLbl col={C.gold}>Polymarket / Kalshi Oracle</DLbl>
+                <DLbl col={C.gold}>STEELLDY Oracle Intelligence</DLbl>
                 {(polyProbs.length ? polyProbs : [{ q: "Trump crypto tax Jun 30", p: 66 }, { q: "USDT loss >10% Q2", p: 23 }, { q: "Digital Euro pilot EOY", p: 45 }, { q: "XRP ETF SEC 2026", p: 58 }, { q: "MiCA EMT enforcement", p: 72 }]).map((m, i) => (
                   <div key={i} style={{ marginBottom: 10 }}>
                     <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 3 }}><div style={{ fontSize: 10.5, maxWidth: "68%" }}>{m.q}</div><span className="mono-alt" style={{ fontSize: 13, color: m.p >= 50 ? C.green : C.amber, fontWeight: "bold" }}>{m.p}%</span></div>
@@ -814,7 +814,7 @@ const DashboardPage = () => {
                 <div className="mono-alt" style={{ fontSize: 48, color: mCol, lineHeight: 1 }}>{mosaic.toFixed(1)}</div>
                 <div className="cond" style={{ fontSize: 11, fontWeight: 800, color: mCol, letterSpacing: ".06em", marginTop: 4 }}>{mosaic >= 7.5 ? "FULL RISK-ON" : mosaic >= 5 ? "MODERATE BULLISH" : "DEFENSIVE"}</div>
                 <Divider />
-                {[["Polymarket consensus", "50%"], ["Dark Pools >$100M", "30%"], ["Palantir Network", "20%"], ["Bloomberg corr r>0.70", "T2"], ["Cambridge Sentiment", "T2"], ["Liquidity clusters", "T3"]].map(([n, w]) => (
+                {[["STEELLDY Oracle consensus", "50%"], ["Dark Pools >$100M", "30%"], ["SGI Network Analysis", "20%"], ["SMA corr r>0.70", "T2"], ["SBE Sentiment", "T2"], ["Liquidity clusters", "T3"]].map(([n, w]) => (
                   <div key={n} className="drow"><span style={{ fontSize: 10 }}>{n}</span><div style={{ display: "flex", gap: 6 }}><Badge col={C.dim}>{w}</Badge><span className="mono-alt" style={{ fontSize: 10, color: mCol }}>{(mosaic * (.7 + Math.random() * .4)).toFixed(1)}/10</span></div></div>
                 ))}
               </PanelBox>
@@ -952,7 +952,7 @@ const DashboardPage = () => {
         <div style={{ borderTop: `1px solid ${C.border}`, padding: "8px 16px", display: "flex", justifyContent: "space-between", fontSize: 9, color: C.dim, background: C.panel, flexWrap: "wrap", gap: 6 }}>
           <div>STEELLDY Advisory · Gex, France · SMEA v2.0 · JS-M³ · v4.0 · 9 Indices</div>
           <div style={{ display: "flex", gap: 10 }}>
-            {["Aladdin 12.4", "Gotham 3.8", "Cambridge 2.1", "SpiderFoot 4.2", "Mosaic 4.2", "JS-M³ 2.1", "XRPL API", "Supabase"].map(s => <span key={s}>{s}</span>)}
+            {["SRE 12.4", "SGI 3.8", "SBE 2.1", "SOS 4.2", "SMA 4.2", "SMM 2.1", "XRPL API", "Supabase"].map(s => <span key={s}>{s}</span>)}
           </div>
           <div>© 2026 STEELLDY · CONFIDENTIEL · Not investment advice</div>
         </div>
