@@ -6,19 +6,19 @@ const SB_URL = import.meta.env.VITE_SUPABASE_URL || "";
 const SB_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || "";
 const SB_HEADERS = SB_KEY ? { apikey: SB_KEY, Authorization: `Bearer ${SB_KEY}` } : null;
 
-// ─── STRIPE PRICE IDs — LIVE ─────────────────────────────────────────────────
-const STRIPE_PRICES = {
-  free:         "price_1TmZiM5KJxLV4voLFLpHIBgc",  // €0/mo
-  analyst:      "price_1TjLOP5KJxLV4voLgdVQkmRY",  // €490/mo
-  professional: "price_1TjLPm5KJxLV4voLp7IeMOt0",  // €990/mo
-  institutional:"price_1TmZtl5KJxLV4voL35AwVnhZ",  // €1,990/mo
+// ─── STRIPE PAYMENT LINKS — LIVE ─────────────────────────────────────────────
+const STRIPE_LINKS = {
+  free:         null,                                                    // €0 → Dashboard direct
+  analyst:      "https://buy.stripe.com/aFa7sE9iEf4KfDdaD4dwc01",      // €490/mo
+  professional: "https://buy.stripe.com/bJedR2bqMf4Kez96mOdwc02",      // €990/mo
+  institutional:"https://buy.stripe.com/14AdR2amIcWC2Qr26ydwc04",      // €1,990/mo
 };
-const handleStripe = (priceId) => {
-  if (!priceId || priceId === "price_1TmZiM5KJxLV4voLFLpHIBgc") {
+const handleStripe = (link) => {
+  if (!link) {
     window.location.href = "/dashboard";
     return;
   }
-  window.location.href = `https://buy.stripe.com/${priceId}`;
+  window.location.href = link;
 };
 
 // ─── PALETTE ─────────────────────────────────────────────────────────────────
@@ -372,7 +372,7 @@ const PricingPage = ({ onNavigate }) => (
         <p style={{ fontSize: 13, color: C.dim, marginBottom: 24, lineHeight: 1.6 }}>
           9 indices real-time for independent analysts and junior family offices.
         </p>
-        <button className="btn-outline" style={{ width: "100%", marginBottom: 24 }} onClick={() => handleStripe(STRIPE_PRICES.analyst)}>Get Started</button>
+        <button className="btn-outline" style={{ width: "100%", marginBottom: 24 }} onClick={() => handleStripe(STRIPE_LINKS.analyst)}>Get Started</button>
         {["9 indices real-time", "Supabase data feed", "Daily intelligence report", "1 user seat", "Standard support"].map(f => (
           <div key={f} style={{ display: "flex", gap: 10, marginBottom: 10, fontSize: 12, color: C.text }}><span style={{ color: C.green }}>✓</span>{f}</div>
         ))}
@@ -397,7 +397,7 @@ const PricingPage = ({ onNavigate }) => (
         <p style={{ fontSize: 13, color: C.dim, marginBottom: 24, lineHeight: 1.6 }}>
           Full access for crypto desks, hedge funds, and asset managers.
         </p>
-        <button className="btn-gold" style={{ width: "100%", marginBottom: 24 }} onClick={() => handleStripe(STRIPE_PRICES.professional)}>Get Started</button>
+        <button className="btn-gold" style={{ width: "100%", marginBottom: 24 }} onClick={() => handleStripe(STRIPE_LINKS.professional)}>Get Started</button>
         {["Everything in Analyst", "REST API access", "Historical data 2 years", "Oracle dashboard", "VPIN + alerts", "2 user seats", "Priority support"].map(f => (
           <div key={f} style={{ display: "flex", gap: 10, marginBottom: 10, fontSize: 12, color: C.text }}><span style={{ color: C.green }}>✓</span>{f}</div>
         ))}
