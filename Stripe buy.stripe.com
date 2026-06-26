@@ -1,0 +1,52 @@
+warning: in the working copy of 'src/App.jsx', LF will be replaced by CRLF the next time Git touches it
+[1mdiff --git a/src/App.jsx b/src/App.jsx[m
+[1mindex c36d006..b408218 100644[m
+[1m--- a/src/App.jsx[m
+[1m+++ b/src/App.jsx[m
+[36m@@ -6,19 +6,19 @@[m [mconst SB_URL = import.meta.env.VITE_SUPABASE_URL || "";[m
+ const SB_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || "";[m
+ const SB_HEADERS = SB_KEY ? { apikey: SB_KEY, Authorization: `Bearer ${SB_KEY}` } : null;[m
+ [m
+[31m-// ─── STRIPE PRICE IDs — LIVE ─────────────────────────────────────────────────[m
+[31m-const STRIPE_PRICES = {[m
+[31m-  free:         "price_1TmZiM5KJxLV4voLFLpHIBgc",  // €0/mo[m
+[31m-  analyst:      "price_1TjLOP5KJxLV4voLgdVQkmRY",  // €490/mo[m
+[31m-  professional: "price_1TjLPm5KJxLV4voLp7IeMOt0",  // €990/mo[m
+[31m-  institutional:"price_1TmZtl5KJxLV4voL35AwVnhZ",  // €1,990/mo[m
+[32m+[m[32m// ─── STRIPE PAYMENT LINKS — LIVE ─────────────────────────────────────────────[m
+[32m+[m[32mconst STRIPE_LINKS = {[m
+[32m+[m[32m  free:         null,                                                    // €0 → Dashboard direct[m
+[32m+[m[32m  analyst:      "https://buy.stripe.com/aFa7sE9iEf4KfDdaD4dwc01",      // €490/mo[m
+[32m+[m[32m  professional: "https://buy.stripe.com/bJedR2bqMf4Kez96mOdwc02",      // €990/mo[m
+[32m+[m[32m  institutional:"https://buy.stripe.com/14AdR2amIcWC2Qr26ydwc04",      // €1,990/mo[m
+ };[m
+[31m-const handleStripe = (priceId) => {[m
+[31m-  if (!priceId || priceId === "price_1TmZiM5KJxLV4voLFLpHIBgc") {[m
+[32m+[m[32mconst handleStripe = (link) => {[m
+[32m+[m[32m  if (!link) {[m
+     window.location.href = "/dashboard";[m
+     return;[m
+   }[m
+[31m-  window.location.href = `https://buy.stripe.com/${priceId}`;[m
+[32m+[m[32m  window.location.href = link;[m
+ };[m
+ [m
+ // ─── PALETTE ─────────────────────────────────────────────────────────────────[m
+[36m@@ -372,7 +372,7 @@[m [mconst PricingPage = ({ onNavigate }) => ([m
+         <p style={{ fontSize: 13, color: C.dim, marginBottom: 24, lineHeight: 1.6 }}>[m
+           9 indices real-time for independent analysts and junior family offices.[m
+         </p>[m
+[31m-        <button className="btn-outline" style={{ width: "100%", marginBottom: 24 }} onClick={() => handleStripe(STRIPE_PRICES.analyst)}>Get Started</button>[m
+[32m+[m[32m        <button className="btn-outline" style={{ width: "100%", marginBottom: 24 }} onClick={() => handleStripe(STRIPE_LINKS.analyst)}>Get Started</button>[m
+         {["9 indices real-time", "Supabase data feed", "Daily intelligence report", "1 user seat", "Standard support"].map(f => ([m
+           <div key={f} style={{ display: "flex", gap: 10, marginBottom: 10, fontSize: 12, color: C.text }}><span style={{ color: C.green }}>✓</span>{f}</div>[m
+         ))}[m
+[36m@@ -397,7 +397,7 @@[m [mconst PricingPage = ({ onNavigate }) => ([m
+         <p style={{ fontSize: 13, color: C.dim, marginBottom: 24, lineHeight: 1.6 }}>[m
+           Full access for crypto desks, hedge funds, and asset managers.[m
+         </p>[m
+[31m-        <button className="btn-gold" style={{ width: "100%", marginBottom: 24 }} onClick={() => handleStripe(STRIPE_PRICES.professional)}>Get Started</button>[m
+[32m+[m[32m        <button className="btn-gold" style={{ width: "100%", marginBottom: 24 }} onClick={() => handleStripe(STRIPE_LINKS.professional)}>Get Started</button>[m
+         {["Everything in Analyst", "REST API access", "Historical data 2 years", "Oracle dashboard", "VPIN + alerts", "2 user seats", "Priority support"].map(f => ([m
+           <div key={f} style={{ display: "flex", gap: 10, marginBottom: 10, fontSize: 12, color: C.text }}><span style={{ color: C.green }}>✓</span>{f}</div>[m
+         ))}[m

@@ -1,5 +1,22 @@
 import { useState, useEffect, useRef } from "react";
 import { AreaChart, Area, LineChart, Line, ResponsiveContainer, ReferenceLine } from "recharts";
+import {
+  SignIn, SignUp, SignedIn, SignedOut,
+  UserButton, useUser, ClerkProvider
+} from "@clerk/clerk-react";
+
+// ─── CLERK CONFIG ─────────────────────────────────────────────────────────────
+const CLERK_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY || "";
+
+// ─── TIER DETECTION — lit les metadata Clerk ─────────────────────────────────
+// publicMetadata.tier = "free" | "analyst" | "professional" | "institutional"
+const getTier = (user) => {
+  if (!user) return null;
+  return user.publicMetadata?.tier || "free";
+};
+const TIER_RANK = { free: 0, analyst: 1, professional: 2, institutional: 3 };
+const hasAccess = (userTier, required) =>
+  (TIER_RANK[userTier] || 0) >= (TIER_RANK[required] || 0);
 
 // ─── SUPABASE CONFIG ──────────────────────────────────────────────────────────
 const SB_URL = import.meta.env.VITE_SUPABASE_URL || "";
@@ -945,40 +962,172 @@ const DashboardPage = () => {
 };
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// MAIN APP — NAVIGATION
+// AUTH PAGE — Login / Signup Clerk
 // ═══════════════════════════════════════════════════════════════════════════════
-export default function App() {
+const AuthPage = ({ mode = "sign-in", onNavigate }) => (
+  <div style={{ minHeight: "100vh", background: C.bg, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: 40 }}>
+    <div style={{ marginBottom: 32, textAlign: "center" }}>
+      <div className="mono" style={{ fontSize: 20, fontWeight: 700, color: C.gold, letterSpacing: ".14em", marginBottom: 8 }}>STEELLDY</div>
+      <div style={{ fontSize: 13, color: C.dim }}>
+        {mode === "sign-in" ? "Accédez à votre espace Intelligence" : "Créez votre compte STEELLDY"}
+      </div>
+    </div>
+    {mode === "sign-in"
+      ? <SignIn
+          appearance={{ variables: { colorPrimary: C.gold, colorBackground: C.panel, colorText: C.white, colorTextSecondary: C.dim, colorInputBackground: C.bg, colorInputText: C.white, borderRadius: "4px", fontFamily: "DM Sans, sans-serif" } }}
+          afterSignInUrl="/"
+          signUpUrl="/sign-up"
+        />
+      : <SignUp
+          appearance={{ variables: { colorPrimary: C.gold, colorBackground: C.panel, colorText: C.white, colorTextSecondary: C.dim, colorInputBackground: C.bg, colorInputText: C.white, borderRadius: "4px", fontFamily: "DM Sans, sans-serif" } }}
+          afterSignUpUrl="/"
+          signInUrl="/sign-in"
+        />
+    }
+    <button onClick={() => onNavigate("home")} style={{ marginTop: 24, background: "transparent", border: "none", color: C.dim, fontSize: 12, cursor: "pointer" }}>← Retour à l'accueil</button>
+  </div>
+);
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// DASHBOARD GATED — accès selon tier
+// ═══════════════════════════════════════════════════════════════════════════════
+const DashboardGated = ({ onNavigate }) => {
+  const { user } = useUser();
+  const tier = getTier(user);
+
+  // FREE : accès DYOI seulement
+  if (tier === "free") {
+    const dyoi = INDICES.find(i => i.id === "DYOI");
+    const series = genSeries(dyoi.base, dyoi.vol);
+    return (
+      <div style={{ minHeight: "100vh", background: C.bg, padding: 40 }}>
+        <div style={{ maxWidth: 900, margin: "0 auto" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 32 }}>
+            <div>
+              <div className="mono" style={{ fontSize: 11, color: C.gold, letterSpacing: ".15em", marginBottom: 4 }}>FREE TIER — APERÇU LIMITÉ</div>
+              <div className="mono" style={{ fontSize: 20, fontWeight: 700, color: C.white }}>DYOI — DeFi Yield Optimization Index</div>
+            </div>
+            <UserButton afterSignOutUrl="/" />
+          </div>
+
+          {/* DYOI Card */}
+          <div style={{ background: C.panel, border: `1px solid ${C.border}`, borderTop: `3px solid ${C.cyan}`, padding: 32, marginBottom: 24 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 20 }}>
+              <div>
+                <div className="mono" style={{ fontSize: 48, fontWeight: 300, color: C.white }}>{dyoi.base.toFixed(1)}<span style={{ fontSize: 20, color: C.cyan }}>%</span></div>
+                <div style={{ fontSize: 13, color: C.dim, marginTop: 4 }}>Yield annualisé moyen · 25 protocoles · T-1</div>
+              </div>
+              <div style={{ textAlign: "right" }}>
+                <div style={{ fontSize: 12, color: C.dim, marginBottom: 4 }}>Sharpe Ratio</div>
+                <div className="mono" style={{ fontSize: 24, color: C.cyan }}>{dyoi.sr}</div>
+              </div>
+            </div>
+            <ResponsiveContainer width="100%" height={120}>
+              <AreaChart data={series}>
+                <defs><linearGradient id="gcyan" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor={C.cyan} stopOpacity={.3} /><stop offset="100%" stopColor={C.cyan} stopOpacity={0} />
+                </linearGradient></defs>
+                <Area type="monotone" dataKey="v" stroke={C.cyan} strokeWidth={2} fill="url(#gcyan)" dot={false} isAnimationActive={false} />
+              </AreaChart>
+            </ResponsiveContainer>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 12, marginTop: 20 }}>
+              {dyoi.sub.map((s, i) => (
+                <div key={s} style={{ background: C.panel2, padding: 12, border: `1px solid ${C.border}` }}>
+                  <div style={{ fontSize: 11, color: C.dim, marginBottom: 4 }}>{s}</div>
+                  <div className="mono" style={{ fontSize: 18, color: C.cyan }}>{dyoi.subV[i]}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Upgrade Banner */}
+          <div style={{ background: `linear-gradient(135deg, ${C.gold}12, ${C.gold}06)`, border: `1px solid ${C.gold}40`, borderRadius: 4, padding: 28, textAlign: "center" }}>
+            <div className="mono" style={{ fontSize: 11, color: C.gold, letterSpacing: ".2em", marginBottom: 8 }}>DÉBLOQUEZ LES 9 INDICES</div>
+            <div style={{ fontSize: 22, fontWeight: 300, color: C.white, marginBottom: 8 }}>
+              8 indices supplémentaires · API · Alertes temps réel
+            </div>
+            <div style={{ fontSize: 13, color: C.dim, marginBottom: 24 }}>
+              RTAI · CCQI · SSSI · CAVI · XSQI · XCDI · ETACI · PII
+            </div>
+            <button className="btn-gold" onClick={() => handleStripe(STRIPE_LINKS.analyst)}>
+              Passer à Analyst — €490/mois →
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ANALYST, PROFESSIONAL, INSTITUTIONAL → Dashboard complet
+  return <DashboardPage userTier={tier} />;
+};
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// MAIN APP — NAVIGATION + CLERK PROVIDER
+// ═══════════════════════════════════════════════════════════════════════════════
+function AppInner() {
   const [page, setPage] = useState("home");
+  const { isSignedIn, user } = useUser();
+  const tier = getTier(user);
   const nav = (p) => { setPage(p); window.scrollTo(0, 0); };
+
+  // Si l'utilisateur essaie d'accéder au dashboard sans être connecté
+  const handleDashboard = () => {
+    if (isSignedIn) nav("dashboard");
+    else nav("sign-in");
+  };
 
   return (
     <div style={{ minHeight: "100vh", background: C.bg }}>
       <style dangerouslySetInnerHTML={{ __html: GLOBAL_CSS }} />
 
       {/* GLOBAL NAV */}
-      <nav style={{ position: "sticky", top: 0, zIndex: 1000, background: "rgba(3,7,17,.92)", backdropFilter: "blur(16px)", borderBottom: `1px solid ${C.border}`, padding: "0 40px" }}>
-        <div style={{ maxWidth: 1400, margin: "0 auto", display: "flex", justifyContent: "space-between", alignItems: "center", height: 56 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 32 }}>
-            <div onClick={() => nav("home")} style={{ cursor: "pointer" }}>
-              <span className="mono" style={{ fontSize: 16, fontWeight: 700, color: C.gold, letterSpacing: ".14em" }}>STEELLDY</span>
+      {page !== "sign-in" && page !== "sign-up" && (
+        <nav style={{ position: "sticky", top: 0, zIndex: 1000, background: "rgba(3,7,17,.92)", backdropFilter: "blur(16px)", borderBottom: `1px solid ${C.border}`, padding: "0 40px" }}>
+          <div style={{ maxWidth: 1400, margin: "0 auto", display: "flex", justifyContent: "space-between", alignItems: "center", height: 56 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 32 }}>
+              <div onClick={() => nav("home")} style={{ cursor: "pointer" }}>
+                <span className="mono" style={{ fontSize: 16, fontWeight: 700, color: C.gold, letterSpacing: ".14em" }}>STEELLDY</span>
+              </div>
+              {[["home", "Home"], ["pricing", "Pricing"]].map(([id, label]) => (
+                <button key={id} onClick={() => nav(id)} style={{ fontFamily: "'DM Sans'", fontSize: 13, fontWeight: 500, border: "none", background: "transparent", color: page === id ? C.white : C.dim, cursor: "pointer", padding: "4px 0", borderBottom: page === id ? `2px solid ${C.gold}` : "2px solid transparent" }}>{label}</button>
+              ))}
+              {isSignedIn && (
+                <button onClick={() => nav("dashboard")} style={{ fontFamily: "'DM Sans'", fontSize: 13, fontWeight: 500, border: "none", background: "transparent", color: page === "dashboard" ? C.white : C.dim, cursor: "pointer", padding: "4px 0", borderBottom: page === "dashboard" ? `2px solid ${C.gold}` : "2px solid transparent" }}>Dashboard</button>
+              )}
             </div>
-            {[["home", "Home"], ["pricing", "Pricing"]].map(([id, label]) => (
-              <button key={id} onClick={() => nav(id)} style={{ fontFamily: "'DM Sans'", fontSize: 13, fontWeight: 500, border: "none", background: "transparent", color: page === id ? C.white : C.dim, cursor: "pointer", padding: "4px 0", borderBottom: page === id ? `2px solid ${C.gold}` : "2px solid transparent" }}>{label}</button>
-            ))}
+            <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+              {isSignedIn ? (
+                <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                  <span className="mono" style={{ fontSize: 10, color: C.gold, background: `${C.gold}18`, border: `1px solid ${C.gold}40`, padding: "3px 8px", borderRadius: 2, letterSpacing: ".08em" }}>
+                    {(tier || "FREE").toUpperCase()}
+                  </span>
+                  <UserButton afterSignOutUrl="/" appearance={{ variables: { colorPrimary: C.gold } }} />
+                </div>
+              ) : (
+                <>
+                  <button onClick={() => nav("sign-in")} style={{ background: "transparent", border: "none", color: C.dim, fontSize: 13, cursor: "pointer", fontFamily: "'DM Sans'" }}>Se connecter</button>
+                  <button onClick={() => nav("pricing")} className="btn-outline" style={{ padding: "8px 20px", fontSize: 12 }}>Get Started</button>
+                </>
+              )}
+            </div>
           </div>
-          <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-            <button onClick={() => nav("pricing")} className="btn-outline" style={{ padding: "8px 20px", fontSize: 12 }}>Get Started</button>
-          </div>
-        </div>
-      </nav>
+        </nav>
+      )}
 
       {/* PAGES */}
       {page === "home"      && <HomePage     onNavigate={nav} />}
       {page === "pricing"   && <PricingPage  onNavigate={nav} />}
-      {page === "dashboard" && <DashboardPage />}
+      {page === "sign-in"   && <AuthPage mode="sign-in"  onNavigate={nav} />}
+      {page === "sign-up"   && <AuthPage mode="sign-up"  onNavigate={nav} />}
+      {page === "dashboard" && (
+        isSignedIn
+          ? <DashboardGated onNavigate={nav} />
+          : <AuthPage mode="sign-in" onNavigate={nav} />
+      )}
 
-      {/* GLOBAL FOOTER (uniquement sur home et pricing) */}
-      {page !== "dashboard" && (
+      {/* GLOBAL FOOTER */}
+      {!["dashboard","sign-in","sign-up"].includes(page) && (
         <footer style={{ borderTop: `1px solid ${C.border}`, padding: "40px", background: C.panel }}>
           <div style={{ maxWidth: 1200, margin: "0 auto", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 20 }}>
             <div>
@@ -993,5 +1142,23 @@ export default function App() {
         </footer>
       )}
     </div>
+  );
+}
+
+export default function App() {
+  if (!CLERK_KEY) {
+    return (
+      <div style={{ minHeight: "100vh", background: C.bg, display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <div style={{ textAlign: "center", color: C.dim, fontSize: 13 }}>
+          <div className="mono" style={{ color: C.gold, marginBottom: 8 }}>STEELLDY</div>
+          Clerk configuration manquante — ajouter VITE_CLERK_PUBLISHABLE_KEY dans .env
+        </div>
+      </div>
+    );
+  }
+  return (
+    <ClerkProvider publishableKey={CLERK_KEY}>
+      <AppInner />
+    </ClerkProvider>
   );
 }
