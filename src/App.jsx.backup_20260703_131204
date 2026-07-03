@@ -94,7 +94,7 @@ const INDICES = [
   { id:"CAVI", name:"CBDC Adoption Velocity",color:C.purple, base:64.8, vol:0.9, unit:"", sub:["Tech.","Policy","Infra.","Adopt."], subV:[68,58,72,55], sr:2.80, ir:1.81, dd:-15, alpha:41, z:10.2, desc:"137 countries · BIS mBridge · SWIFT CBDC Connector · LSTM 6M forecast", method:"Technology maturity (25%), policy framework (25%), infrastructure (25%), adoption penetration (25%). LSTM 6M forecast." },
   { id:"DYOI", name:"DeFi Yield Optimiz.",   color:C.cyan,   base:81.3, vol:1.1, unit:"%", sub:["Aave","Curve","Uniswap","Compound"], subV:[88,79,82,71], sr:3.60, ir:2.20, dd:-25, alpha:68, z:13.1, desc:"25 protocols · Risk-adjusted YRA · β-protocol scoring · Nexus Mutual", method:"YRA = Gross_APY × (1 - Risk_Penalty). 25 protocols, beta-scoring, Nexus insurance overlay. Hourly recalc." },
   { id:"XSQI", name:"XRPL Settlement Quality",color:C.teal,  base:87.4, vol:0.6, unit:"", sub:["Throughput","Finality","Comply","Liq"], subV:[92,95,78,84], sr:2.15, ir:1.60, dd:-20, alpha:31, z:7.8,  desc:"XRPL 3-5s finality · RLUSD/EURØP AMM · 40+ ODL corridors · ISO 20022", method:"Settlement speed (25%), regulatory compliance FATF/MiCA (25%), ODL liquidity (25%), ISO 20022 alignment (25%)." },
-  { id:"XCDI", name:"XRPL Compute-Dollar",   color:C.goldL, base:72.1, vol:1.0, unit:"", sub:["XRP","RLUSD","EURØP","RWA"], subV:[78,82,71,65], sr:2.45, ir:1.75, dd:-22, alpha:38, z:9.1,  desc:"Weighted EMTs (EURØP, RLUSD, USDC) + XRP + tokenized RWA on XRPL", method:"Market-cap weighted EMTs on XRPL (40%), XRP settlement utility (30%), XRPL-native RWA volume (30%). XRPL WebSocket API, 3-5s update." },
+  { id:"XCDI", name:"XRPL Compute-Dollar",   color:C.goldL, base:72.1, vol:1.0, unit:"", sub:["XRP","RLUSD","EURØP","RWA"], subV:[78,82,71,65], sr:2.45, ir:1.75, dd:-22, alpha:38, z:9.1,  desc:"EMTs pondérés (EURØP, RLUSD, USDC) + XRP + RWA tokenisés XRPL", method:"Market-cap weighted EMTs on XRPL (40%), XRP settlement utility (30%), XRPL-native RWA volume (30%). XRPL WebSocket API, 3-5s update." },
   { id:"ETACI", name:"ESG Tokenized Compliance",color:C.pink, base:68.9, vol:0.7, unit:"", sub:["CSRD","EU Tax.","SFDR","BEPS"], subV:[72,65,74,63], sr:1.85, ir:1.35, dd:-18, alpha:25, z:6.5,  desc:"50K+ EU CSRD companies · ICVCM · SFDR Art.9 · BEPS Pillar 2", method:"CSRD reporting quality (30%), EU Taxonomy alignment (25%), SFDR classification (25%), BEPS compliance (20%)." },
   { id:"PII",   name:"Proprietary Integrity", color:C.orange, base:84.7, vol:0.9, unit:"", sub:["Insider","Flow","OSINT","Mosaic"], subV:[86,81,88,83], sr:3.20, ir:2.05, dd:-16, alpha:55, z:11.8, desc:"52-signal SMA composite · Dark Pools ATS · SOS OSINT Scanner", method:"Insider flow detection (25%), institutional flow analysis (25%), OSINT signal aggregation (25%), SMA cross-validation (25%)." },
 ];
@@ -107,10 +107,10 @@ const COMMODITY_IDX = [
 ];
 
 const AIS_ROUTES = [
-  { name:"Strait of Hormuz",     risk:78, color:C.red,   signal:"Traffic -18% vs MA30" },
-  { name:"Suez Canal",       risk:74, color:C.red,   signal:"Cape Horn Diversion +12%" },
-  { name:"Strait of Malacca",     risk:52, color:C.amber, signal:"Moderate congestion 36h" },
-  { name:"Black Sea/Bosphorus",  risk:85, color:C.red,   signal:"CRITICAL: grain corridor" },
+  { name:"Détroit d'Ormuz",     risk:78, color:C.red,   signal:"Traffic -18% vs MA30" },
+  { name:"Canal de Suez",       risk:74, color:C.red,   signal:"Déviation Cap Horn +12%" },
+  { name:"Détroit Malacca",     risk:52, color:C.amber, signal:"Congestion modérée 36h" },
+  { name:"Mer Noire/Bosphore",  risk:85, color:C.red,   signal:"CRITIQUE: grain corridor" },
 ];
 
 const ALERTS_INIT = [
@@ -118,7 +118,7 @@ const ALERTS_INIT = [
   { t:"red",   time:"10:00", msg:"Dark Pool: BTC $100M BUY @ $70,420 (Cumberland OTC)." },
   { t:"amber", time:"08:30", msg:"SOS Scanner: Ripple regulatory filing — XSQI + XCDI monitoring." },
   { t:"amber", time:"08:00", msg:"ETACI: CSRD deadline approaching — 50K+ companies affected." },
-  { t:"amber", time:"07:14", msg:"GeoRisk Bosphorus 85/100 → GRAIN CORRIDOR CRITICAL." },
+  { t:"amber", time:"07:14", msg:"GeoRisk Bosphore 85/100 → GRAIN CORRIDOR CRITIQUE." },
   { t:"green", time:"07:00", msg:"XRPL AMM: RLUSD/XRP pool TVL +4.2% → XCDI: 78.3/100." },
   { t:"green", time:"06:30", msg:"ICE EUA +2.1% → CCQI lead signal confirmed. ρ=0.78." },
   { t:"green", time:"06:00", msg:"DeFi Llama TVL: $36.2Bn (+0.8%) — RTAI Volume: 85.2." },
@@ -954,7 +954,7 @@ const DashboardPage = () => {
           <div style={{ display: "flex", gap: 10 }}>
             {["SRE 12.4", "SGI 3.8", "SBE 2.1", "SOS 4.2", "SMA 4.2", "SMM 2.1", "XRPL API", "Supabase"].map(s => <span key={s}>{s}</span>)}
           </div>
-          <div>© 2026 STEELLDY · CONFIDENTIAL · Not investment advice</div>
+          <div>© 2026 STEELLDY · CONFIDENTIEL · Not investment advice</div>
         </div>
       </div>
     </div>
