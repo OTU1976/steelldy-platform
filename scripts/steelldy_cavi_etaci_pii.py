@@ -227,7 +227,8 @@ def calculate_etaci() -> dict:
 #   PII_tech = w1*I_amount + w2*I_counterparty + w3*I_flow + w4*I_position
 #
 #   Ou I_x = score de leakage informationnelle (0=opaque, 100=transparent)
-#   Poids calibres via factor loading Aladdin 12.4 :
+#   Poids calibres par STEELLDY (document PII 1.0) — a recalibrer par
+#   backtest/factor regression une fois l'historique disponible :
 #     w_counterparty = 0.35
 #     w_amount       = 0.30
 #     w_flow         = 0.20
@@ -248,7 +249,8 @@ def calculate_etaci() -> dict:
 # ==============================================================================
 log_pii = logging.getLogger("PII")
 
-# Poids fixes calibres Aladdin 12.4 (document PII 1.0)
+# Poids fixes calibres par STEELLDY (document PII 1.0) — pondération interne,
+# pas issue d'un moteur tiers sous licence.
 PII_WEIGHTS = {
     "counterparty": 0.35,
     "amount":       0.30,
@@ -358,7 +360,7 @@ def calculate_pii_tech(arch: dict) -> float:
              + w_flow         * I_flow
              + w_position     * I_position
 
-    Poids : calibres Aladdin 12.4 factor loading (document PII 1.0)
+    Poids : calibres par STEELLDY (document PII 1.0)
     Score : 0 (opaque/privacy-preserving) a 100 (fully transparent/leaky)
 
     Interpretation institutionnelle :
@@ -497,7 +499,7 @@ def calculate_pii() -> dict:
         "version":               "2.0",
         "methodology": (
             "PII_tech = 0.35*I_counterparty + 0.30*I_amount + 0.20*I_flow + 0.15*I_position. "
-            "Weights calibrated via Aladdin 12.4 factor loading. "
+            "Weights calibrated by STEELLDY (internal methodology, STEELLDY PII 1.0 document). "
             "PII_aggregate = SUM(PII_tech_i * MC_i) / SUM(MC_i). "
             "0=opaque/privacy-preserving, 100=fully transparent/permissionless. "
             "Ref: STEELLDY PII 1.0 document 25-06-2026, Ahmed-Aldasoro BIS run risk model."

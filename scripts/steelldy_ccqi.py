@@ -215,7 +215,9 @@ def calculate_eua_signal(eua_price: float) -> float:
         bonus = max(-5.0 - (EUA_PRICE_BEAR - eua_price) * 0.3, -10.0)
     else:
         # Interpolation linéaire dans la zone neutre
-        bonus = (eua_price - EUA_PRICE_BEAR) / (EUA_PRICE_BULL - EUA_PRICE_BEAR) * 2 - 1
+        # v2: bornes ×10-5 (pas ×2-1) pour raccorder exactement aux bornes bull/bear
+        # et éliminer la discontinuité de +4pts observée à €75 et €90 (audit 2026-07)
+        bonus = (eua_price - EUA_PRICE_BEAR) / (EUA_PRICE_BULL - EUA_PRICE_BEAR) * 10 - 5
     log.info(f"EUA signal: €{eua_price:.2f} → {bonus:+.2f} pts")
     return bonus
 

@@ -28,6 +28,7 @@ Version: 2.1 · June 2026
 
 import os
 import sys
+import math
 import time
 import logging
 import requests
@@ -210,14 +211,11 @@ def discover_slugs(pools: list):
 # ─── DYOI CALCULATOR ─────────────────────────────────────────────────────────
 def calculate_risk_penalty(beta: float, apy: float) -> float:
     beta_penalty = min(beta * 0.4, 0.60)
-    if apy > 50:
-        apy_penalty = 0.40
-    elif apy > 20:
-        apy_penalty = 0.20
-    elif apy > 10:
-        apy_penalty = 0.05
-    else:
-        apy_penalty = 0.0
+    # v2: sigmoide continue (remplace la fonction en escalier — même correction
+    # de principe que le fix EUA signal du CCQI). Cap asymptotique 0.40, centre à
+    # APY=30%, pente 0.15 -> ~0.02 à APY=10%, ~0.07 à APY=20%, ~0.38 à APY=50%,
+    # au lieu des sauts discrets 0/0.05/0.20/0.40 de la v1.
+    apy_penalty = 0.40 / (1 + math.exp(-0.15 * (apy - 30)))
     return min(beta_penalty + apy_penalty, 0.85)
 
 
