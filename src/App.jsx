@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { AreaChart, Area, LineChart, Line, ResponsiveContainer, ReferenceLine } from "recharts";
 import {
   SignIn, SignUp, SignedIn, SignedOut,
-  UserButton, useUser, ClerkProvider
+  UserButton, useUser, useAuth, ClerkProvider
 } from "@clerk/clerk-react";
 
 // ─── CLERK CONFIG ─────────────────────────────────────────────────────────────
@@ -22,6 +22,26 @@ const hasAccess = (userTier, required) =>
 const SB_URL = import.meta.env.VITE_SUPABASE_URL || "";
 const SB_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || "";
 const SB_HEADERS = SB_KEY ? { apikey: SB_KEY, Authorization: `Bearer ${SB_KEY}` } : null;
+
+// ─── GATED INDEX DATA (2026-08-11) ────────────────────────────────────────────
+// Replaces raw fetch(`${SB_URL}/rest/v1/<table>`) calls with anon key, which let
+// anyone — no login, no payment — read the same live data as an Institutional
+// subscriber (RLS policies on the index tables were `USING (true)` for public
+// SELECT). Real access control now lives server-side in the get-index-data
+// Edge Function, which independently verifies the caller's Clerk session and
+// looks up their tier via the Clerk Backend API — it does not trust anything
+// the client claims. Free/unauthenticated callers only ever get CCQI+DYOI,
+// T-1. See supabase/functions/get-index-data/index.ts.
+const fetchIndexData = async (scope, token, params = {}) => {
+  if (!SB_URL) return null;
+  const qs = new URLSearchParams({ scope, ...params }).toString();
+  const headers = token ? { Authorization: `Bearer ${token}` } : {};
+  try {
+    const r = await fetch(`${SB_URL}/functions/v1/get-index-data?${qs}`, { headers });
+    if (!r.ok) return null;
+    return await r.json();
+  } catch (e) { return null; }
+};
 
 // ─── STRIPE PAYMENT LINKS — LIVE ─────────────────────────────────────────────
 const STRIPE_LINKS = {
@@ -94,15 +114,39 @@ body{background:${C.bg};color:${C.text};font-family:'DM Sans',sans-serif;overflo
 
 // ─── DATA ─────────────────────────────────────────────────────────────────────
 const INDICES = [
-  { id:"RTAI", name:"RWA Tokenization",      color:C.blueL,  live:true, base:78.6, vol:0.8, unit:"", sub:["Volume","Quality","Comply","Liquid"], subV:[85,72,68,81], sr:2.40, ir:1.80, dd:-18, alpha:34, z:8.7,  desc:"BlackRock BUIDL · Franklin BENJI · Ondo OUSG · Centrifuge · Maple", method:"TVL-weighted tokenization volume (30%), institutional quality (25%), ESMA/MiCA compliance (25%), secondary liquidity (20%). Weekly rebalance." },
-  { id:"CCQI", name:"Carbon Credit Quality", color:C.green,  live:true, base:92.4, vol:0.5, unit:"", sub:["Verif.","Perm.","Addit.","CoBen."], subV:[94,88,92,95], sr:3.10, ir:2.14, dd:-12, alpha:52, z:11.3, desc:"Verra VCUs · Gold Standard · Isometric · ICE EUA corr. ρ=0.78", method:"Verification rigor (30%), permanence (25%), additionality (25%), co-benefits (20%). ICE EUA lead signal." },
-  { id:"SSSI", name:"Stablecoin Stability",  color:C.amber,  live:true, base:73.2, vol:0.6, unit:"", sub:["USDC","USDT","DAI","PYUSD"], subV:[80,59,55,62], sr:1.90, ir:1.39, dd:-22, alpha:28, z:6.9,  desc:"Top 10 stablecoins · Reserve transparency · VPIN depeg detection", method:"Reserve transparency (35%), peg deviation EWMA (25%), VPIN informed trading (20%), redemption stress (20%). 6h update." },
-  { id:"CAVI", name:"CBDC Adoption Velocity",color:C.purple, live:false, base:64.8, vol:0.9, unit:"", sub:["Tech.","Policy","Infra.","Adopt."], subV:[68,58,72,55], sr:2.80, ir:1.81, dd:-15, alpha:41, z:10.2, desc:"137 countries · BIS mBridge · SWIFT CBDC Connector · Monthly BIS/CSRD update", method:"Technology maturity (25%), policy framework (25%), infrastructure (25%), adoption penetration (25%). Manual monthly update from BIS CBDC Tracker + Atlantic Council data." },
-  { id:"DYOI", name:"DeFi Yield Optimiz.",   color:C.cyan,   live:true, base:81.3, vol:1.1, unit:"%", sub:["Aave","Curve","Uniswap","Compound"], subV:[88,79,82,71], sr:3.60, ir:2.20, dd:-25, alpha:68, z:13.1, desc:"25 protocols · Risk-adjusted YRA · β-protocol scoring · Nexus Mutual", method:"YRA = Gross_APY × (1 - Risk_Penalty). 25 protocols, beta-scoring, Nexus insurance overlay. Hourly recalc." },
-  { id:"XSQI", name:"XRPL Settlement Quality",color:C.teal,  live:true, base:87.4, vol:0.6, unit:"", sub:["Throughput","Finality","Comply","Liq"], subV:[92,95,78,84], sr:2.15, ir:1.60, dd:-20, alpha:31, z:7.8,  desc:"XRPL 3-5s finality · RLUSD/EURØP AMM · 40+ ODL corridors · ISO 20022", method:"Settlement speed (25%), regulatory compliance FATF/MiCA (25%), ODL liquidity (25%), ISO 20022 alignment (25%)." },
-  { id:"XCDI", name:"XRPL Compute-Dollar",   color:C.goldL, live:false, base:72.1, vol:1.0, unit:"", sub:["XRP","RLUSD","EURØP","RWA"], subV:[78,82,71,65], sr:2.45, ir:1.75, dd:-22, alpha:38, z:9.1,  desc:"Weighted EMTs (EURØP, RLUSD, USDC) + XRP + tokenized RWA on XRPL", method:"Market-cap weighted EMTs on XRPL (40%), XRP settlement utility (30%), XRPL-native RWA volume (30%). XRPL WebSocket API, 3-5s update." },
-  { id:"ETACI", name:"ESG Tokenized Compliance",color:C.pink, live:true, base:68.9, vol:0.7, unit:"", sub:["CSRD","EU Tax.","SFDR","BEPS"], subV:[72,65,74,63], sr:1.85, ir:1.35, dd:-18, alpha:25, z:6.5,  desc:"50K+ EU CSRD companies · ICVCM · SFDR Art.9 · BEPS Pillar 2", method:"CSRD reporting quality (30%), EU Taxonomy alignment (25%), SFDR classification (25%), BEPS compliance (20%)." },
-  { id:"PII",   name:"Proprietary Integrity", color:C.orange, live:false, base:84.7, vol:0.9, unit:"", sub:["Counterp.","Amount","Flow","Position"], subV:[86,81,88,83], sr:3.20, ir:2.05, dd:-16, alpha:55, z:11.8, desc:"Information leakage model · Market-cap-weighted across stablecoin architectures", method:"Counterparty transparency (35%), amount disclosure (30%), flow visibility (20%), position leakage (15%). Market-cap-weighted aggregate across USDT/USDC/DAI/PYUSD architectures." },
+  /* v2 (2026-08-05): removed dead sr/ir/dd/alpha/z (Sharpe, information ratio, drawdown,
+     alpha, z-score) fields from all 9 entries below. They were never rendered anywhere in
+     the app but were fabricated numbers sitting in source — same category of fake stat
+     already purged from the visible UI. Also removed CCQI's "ICE EUA corr. ρ=0.78" (no
+     script computes a correlation coefficient; the CCQI backend applies a rule-based
+     bull/bear EUA price bonus, not a statistical correlation) and XCDI's false "XRPL
+     WebSocket API" claim (the free-indices script polls XRPScan's REST API on a 30-min
+     cron, there is no WebSocket connection). */
+  /* v3 (2026-08-06): audited every method/desc string below against the script that
+     ACTUALLY writes the live table each one reads from (INDEX_TABLES, further down).
+     RTAI/SSSI/XSQI/XCDI/CAVI/ETACI/PII read from *_index, written by
+     steelldy_free_indices.py — NOT from the more elaborate legacy scripts
+     (steelldy_cavi_etaci_pii.py) that still exist in /scripts but whose tables the
+     frontend no longer queries. Several descriptions here had drifted from what the
+     live script actually computes — most seriously PII, which was described as a
+     stablecoin counterparty/amount/flow/position leakage model (that IS what
+     steelldy_cavi_etaci_pii.py computes, into the orphaned index_pii table) while the
+     live pii_index table is actually a BTC-market composite (Fear&Greed + BTC
+     dominance + open interest + their average). Corrected all of them to match the
+     real formula, real weights, and real component names in the live script. */
+  { id:"RTAI", name:"RWA Tokenization",      color:C.blueL,  live:true, base:78.6, vol:0.8, unit:"", sub:["TVL","Quality","Comply","Liquid"], subV:[85,72,68,81], desc:"DeFi Llama RWA-tagged protocols (BlackRock BUIDL, Franklin BENJI, Ondo OUSG, Centrifuge, Maple among them) — auto-detected by name/category/description match", method:"RWA TVL, log-scaled (35%), institutional-name quality score (25%), compliance baseline (20%, fixed conservative estimate — not a live regulatory feed), protocol-count liquidity proxy (20%)." },
+  { id:"CCQI", name:"Carbon Credit Quality", color:C.green,  live:true, base:92.4, vol:0.5, unit:"", sub:["Verif.","Perm.","Addit.","CoBen."], subV:[94,88,92,95], desc:"Verra VCUs · Gold Standard · Isometric · ICE EUA bull/bear signal", method:"Verification rigor (30%), permanence (25%), additionality (25%), co-benefits (20%). ICE EUA price used as a rule-based lead signal (bonus/penalty), not a statistical correlation." },
+  { id:"SSSI", name:"Stablecoin Stability",  color:C.amber,  live:true, base:73.2, vol:0.6, unit:"", sub:["USDC","USDT","DAI","PYUSD"], subV:[80,59,55,62], desc:"8 stablecoins (USDT, USDC, DAI, PYUSD, FDUSD, TUSD, FRAX, MIM) · live peg deviation · static reserve-transparency scores", method:"Per-coin score = peg deviation (65%, real-time CoinGecko price vs $1.00) + reserve transparency (35%, fixed score per coin from public audits). Aggregated across the 8 coins by fixed market-share weights. No VPIN, no EWMA smoothing — each run is a fresh snapshot." },
+  { id:"CAVI", name:"CBDC Adoption Velocity",color:C.purple, live:false, base:64.8, vol:0.9, unit:"", sub:["Tech.","Policy","Infra.","Adopt."], subV:[68,58,72,55], desc:"134 countries · BIS mBridge · SWIFT CBDC Connector · Quarterly BIS/Atlantic Council update", method:"Technology maturity (25%), policy framework (25%), infrastructure (25%), adoption penetration (25%). Static dataset updated manually on a quarterly cadence from Atlantic Council / BIS / IMF public trackers — not a live feed." },
+  { id:"DYOI", name:"DeFi Yield Optimiz.",   color:C.cyan,   live:true, base:81.3, vol:1.1, unit:"%", sub:["Aave","Curve","Uniswap","Compound"], subV:[88,79,82,71], desc:"25 protocols · Risk-adjusted YRA · beta-scoring · static insurance-coverage scoring", method:"YRA = Gross_APY × (1 - Risk_Penalty), sigmoid risk penalty (40%). Protocol beta score (25%), liquidity depth (20%), insurance-coverage score (15%, fixed per-protocol estimate, not a live Nexus Mutual feed). 25 DeFi Llama pools, hourly recalc." },
+  { id:"XSQI", name:"XRPL Settlement Quality",color:C.teal,  live:true, base:87.4, vol:0.6, unit:"", sub:["Finality","Decentr.","Through.","Liquid"], subV:[92,95,78,84], desc:"XRPL 3-5s finality · validator decentralization · 40+ ODL corridors", method:"Finality (30%, fixed — XRPL's 3-5s close time), validator-count decentralization (25%), transaction throughput (25%, live tx/s via XRPScan), XRP/USD+EUR volume liquidity proxy (20%)." },
+  { id:"XCDI", name:"XRPL Compute-Dollar",   color:C.goldL, live:false, base:72.1, vol:1.0, unit:"", sub:["XRP Util.","Activity","RWA"], subV:[78,82,71], desc:"XRP price/utility signal + XRPL ledger activity + XRPL-tagged RWA TVL on DeFi Llama", method:"XRP price/utility signal (40%), XRPL ledger activity via tx/s proxy (35%), log-scaled XRPL-tagged RWA TVL (25%). XRPScan + DeFi Llama REST APIs, 30-min update." },
+  { id:"ETACI", name:"ESG Tokenized Compliance",color:C.pink, live:true, base:68.9, vol:0.7, unit:"", sub:["CSRD","EU Tax.","SFDR","BEPS"], subV:[72,65,74,63], desc:"50K+ companies in CSRD scope EU-wide · ICVCM · SFDR Art.9 · BEPS Pillar 2", method:"CSRD reporting quality (30%), EU Taxonomy alignment (25%), SFDR classification (25%), BEPS compliance (20%). Static dataset from ESMA/ICVCM/Verra public reports, updated quarterly." },
+  /* PII (2026-08-06): this was described as a stablecoin counterparty/amount/flow/position
+     leakage model — that IS the real formula in scripts/steelldy_cavi_etaci_pii.py, but that
+     script writes to the orphaned legacy index_pii table, not the pii_index table the
+     dashboard actually reads. The live methodology is a BTC market-structure composite. */
+  { id:"PII",   name:"Proprietary Integrity", color:C.orange, live:false, base:84.7, vol:0.9, unit:"", sub:["Inst.Flow","Fear&Greed","Integrity","Mosaic"], subV:[75,50,75,67], desc:"BTC market-structure composite: open interest, Fear & Greed Index, BTC dominance", method:"Institutional flow (25%, BTC open-interest proxy), Fear & Greed-derived score (25%, Alternative.me), market integrity (25%, BTC dominance proxy), mosaic signal (25%, average of the other three). Free APIs: Alternative.me, CoinGecko, CoinGlass." },
 ];
 
 const COMMODITY_IDX = [
@@ -112,23 +156,20 @@ const COMMODITY_IDX = [
   { id:"VPIN-C", name:"VPIN Commodity",   color:C.amber,  val:0.48,  chg:+0.03 },
 ];
 
-const AIS_ROUTES = [
-  { name:"Strait of Hormuz",     risk:78, color:C.red,   signal:"Traffic -18% vs MA30" },
-  { name:"Suez Canal",       risk:74, color:C.red,   signal:"Cape Horn Diversion +12%" },
-  { name:"Strait of Malacca",     risk:52, color:C.amber, signal:"Moderate congestion 36h" },
-  { name:"Black Sea/Bosphorus",  risk:85, color:C.red,   signal:"CRITICAL: grain corridor" },
-];
+/* v4 (2026-08-06) — task #15, feu vert Helen:
+   AIS_ROUTES ("AIS Maritime GeoRisk") is deleted outright. There is no AIS
+   (ship-tracking) data source anywhere in this codebase — no script fetches
+   shipping-lane traffic, and the Suez/Hormuz/Malacca/Bosphorus risk scores were
+   invented numbers with no underlying computation. STEELLDY tracks RWA
+   tokenization, carbon credits, stablecoins, CBDCs, DeFi yield and XRPL
+   settlement — not maritime logistics. Removed rather than reframed, because
+   there's no honest version of "STEELLDY's real AIS feed" to fall back to.
 
-const ALERTS_INIT = [
-  { t:"red",   time:"10:15", msg:"VPIN BTC/USD: 0.42 — INFORMED TRADING. Smart money active." },
-  { t:"red",   time:"10:00", msg:"Dark Pool: BTC $100M BUY @ $70,420 (Cumberland OTC)." },
-  { t:"amber", time:"08:30", msg:"SOS Scanner: Ripple regulatory filing — XSQI + XCDI monitoring." },
-  { t:"amber", time:"08:00", msg:"ETACI: CSRD deadline approaching — 50K+ companies affected." },
-  { t:"amber", time:"07:14", msg:"GeoRisk Bosphorus 85/100 → GRAIN CORRIDOR CRITICAL." },
-  { t:"green", time:"07:00", msg:"XRPL AMM: RLUSD/XRP pool TVL +4.2% → XCDI: 78.3/100." },
-  { t:"green", time:"06:30", msg:"ICE EUA +2.1% → CCQI lead signal confirmed. ρ=0.78." },
-  { t:"green", time:"06:00", msg:"DeFi Llama TVL: $36.2Bn (+0.8%) — RTAI Volume: 85.2." },
-];
+   ALERTS_INIT is replaced by computeLiveAlerts() (see DashboardPage below),
+   which derives real alerts from the live index values and the real Alert
+   Thresholds table already in this file, instead of hardcoded fake trades
+   ("Dark Pool: BTC $100M BUY @ $70,420 (Cumberland OTC)" was invented — STEELLDY
+   has no dark-pool or OTC desk visibility) and invented scanner events. */
 
 const MACRO_DEFAULT = [
   { k:"DXY", v:"102.4", chg:"-0.3%", dir:-1 },
@@ -139,23 +180,26 @@ const MACRO_DEFAULT = [
   { k:"ETH", v:"$3,820",chg:"+2.1%", dir:1  },
 ];
 
+/* v4 (2026-08-06) — task #15: the "Unified Sentinel Protocol" used to show 16
+   fictional checkpoints at specific clock times (05:30 AIS tracking, 07:15
+   "Prediction Markets Scan" via the dead polymarket_oracle feed, 10:00 "Dark
+   Pools ATS Scan", etc.) — none of it corresponded to anything that runs. The
+   real system is simpler and more honest: 10 scripts, all triggered by the
+   same GitHub Actions cron (:00 and :30 every hour, i.e. every 30 minutes — see
+   .github/workflows/steelldy-indices-full.yml). No unique per-item clock time,
+   so this is now rendered as a real-time status board (live/beta per id, via
+   isIdxLive / macroFresh) rather than a fake daily schedule. */
 const CHECKPOINTS = [
-  { time:"05:30", label:"AIS Ormuz Tracking",      engine:"SGI GeoRisk 3.8",      signal:"CCQI/Brent corr.",     st:"green" },
-  { time:"06:00", label:"DeFi Llama TVL Update",   engine:"SRE Risk Engine 12.4", signal:"RTAI Volume_Score",    st:"green" },
-  { time:"06:30", label:"ICE EUA Carbon Open",     engine:"SMA Intelligence",     signal:"CCQI corr. ρ=0.78",    st:"amber" },
-  { time:"07:00", label:"XRPL AMM/DEX Scan",       engine:"XRPL WebSocket API",   signal:"XCDI + XSQI update",   st:"green" },
-  { time:"07:15", label:"Prediction Markets Scan", engine:"STEELLDY Oracle 1.0",  signal:"All 9 indices",        st:"green" },
-  { time:"07:30", label:"Oracle Cross-Validate",   engine:"STEELLDY Oracle 1.0",  signal:"Divergence check",     st:"green" },
-  { time:"08:00", label:"CSRD/ESG Scan",           engine:"ACPR/ESMA Filings",    signal:"ETACI update",         st:"green" },
-  { time:"08:15", label:"VIX Futures CME",         engine:"SRE Risk Engine 12.4", signal:"DYOI risk adj.",       st:"green" },
-  { time:"08:30", label:"OSINT Regulatory Scan",   engine:"SOS Scanner 4.2",      signal:"PII + regulatory",     st:"amber" },
-  { time:"09:00", label:"XRPL ODL Volume",         engine:"XRPL Ledger API",      signal:"XSQI + XCDI flows",    st:"green" },
-  { time:"10:00", label:"Dark Pools ATS Scan",     engine:"SMA Intelligence",     signal:"Blocks >$10M",         st:"red"   },
-  { time:"10:15", label:"VPIN Calculation",        engine:"SMM Market Engine",    signal:"Informed trading %",   st:"red"   },
-  { time:"12:00", label:"Mosaic Score Midday",     engine:"SMA Aggregator 4.2",   signal:"52 signals",           st:"amber" },
-  { time:"17:00", label:"Rebalancing Signal",      engine:"SRE Risk Engine 12.4", signal:"Weekly: EXECUTE",      st:"amber" },
-  { time:"21:00", label:"Mosaic Score Final",      engine:"SMA Aggregator 4.2",   signal:"52 signals daily",     st:"amber" },
-  { time:"23:00", label:"Intelligence Report",     engine:"Auto-Generated",       signal:"Email → subscribers",  st:"green" },
+  { id:"CCQI",  label:"Carbon Credit Quality",     engine:"steelldy_ccqi.py",         signal:"Verra/Gold Standard + ICE EUA (Yahoo Finance)" },
+  { id:"DYOI",  label:"DeFi Yield Optimization",   engine:"steelldy_dyoi.py",         signal:"25 DeFi Llama protocol pools" },
+  { id:"MACRO", label:"Macro Feed",                engine:"steelldy_macro_feed.py",   signal:"DXY/VIX/EUA (Yahoo Finance) + BTC (CoinGecko)" },
+  { id:"RTAI",  label:"RWA Tokenization Activity", engine:"steelldy_free_indices.py", signal:"DeFi Llama RWA-tagged TVL" },
+  { id:"SSSI",  label:"Stablecoin Stability",      engine:"steelldy_free_indices.py", signal:"CoinGecko peg deviation + reserve transparency" },
+  { id:"XSQI",  label:"XRPL Settlement Quality",   engine:"steelldy_free_indices.py", signal:"XRPScan validators + throughput" },
+  { id:"CAVI",  label:"CBDC Adoption Velocity",    engine:"steelldy_free_indices.py", signal:"Static Atlantic Council / BIS dataset" },
+  { id:"XCDI",  label:"XRPL Compute-Dollar",       engine:"steelldy_free_indices.py", signal:"CoinGecko XRP + DeFi Llama TVL" },
+  { id:"ETACI", label:"ESG Tokenized Compliance",  engine:"steelldy_free_indices.py", signal:"Static ESMA/ICVCM/Verra dataset" },
+  { id:"PII",   label:"Proprietary Integrity",     engine:"steelldy_free_indices.py", signal:"CoinGlass OI + Fear&Greed + CoinGecko" },
 ];
 
 // ─── HELPERS ─────────────────────────────────────────────────────────────────
@@ -164,6 +208,47 @@ const genSeries = (base, vol, n = 40) => {
   let v = base, arr = [];
   for (let i = 0; i < n; i++) { v += (Math.random() - .47) * vol; arr.push({ i, v: Math.max(0, v) }); }
   return arr;
+};
+
+// v4 (2026-08-06) — task #15: replaces the hardcoded ALERTS_INIT array (fake trades,
+// fake scanner events). Derives real alerts by comparing the current live index values
+// (and the live EUA price from the macro feed) against the actual threshold rules shown
+// in the "Alert Thresholds" panel further down. Only checks thresholds where the
+// underlying number is genuinely available client-side — CAVI/DYOI/XSQI/XCDI/ETACI
+// thresholds reference sub-metrics (24h % change, percentile rank, audit status) that
+// aren't tracked in this frontend, so those are left out rather than approximated.
+const computeLiveAlerts = (lives, macroData, liveIds) => {
+  const val = (id) => { const i = INDICES.findIndex(x => x.id === id); return i !== -1 ? lives[i] : null; };
+  const alerts = [];
+
+  const rtai = val("RTAI");
+  if (rtai != null && liveIds.includes("RTAI")) {
+    if (rtai < 50) alerts.push({ t: "red", msg: `RTAI ${rtai.toFixed(1)} — below the red threshold (<50).` });
+    else if (rtai > 75) alerts.push({ t: "green", msg: `RTAI ${rtai.toFixed(1)} — above the green threshold (>75).` });
+  }
+
+  const euaEntry = macroData.find(m => m.k === "EUA");
+  const eua = euaEntry ? parseFloat(String(euaEntry.v).replace(/[^0-9.]/g, "")) : null;
+  if (eua) {
+    if (eua < 75) alerts.push({ t: "red", msg: `ICE EUA €${eua.toFixed(2)} — below CCQI's bear threshold (€75).` });
+    else if (eua > 90) alerts.push({ t: "green", msg: `ICE EUA €${eua.toFixed(2)} — above CCQI's bull threshold (€90).` });
+  }
+
+  const sssi = val("SSSI");
+  if (sssi != null && liveIds.includes("SSSI")) {
+    if (sssi < 50) alerts.push({ t: "red", msg: `SSSI ${sssi.toFixed(1)} — below the red threshold (<50).` });
+    else if (sssi > 75) alerts.push({ t: "green", msg: `SSSI ${sssi.toFixed(1)} — above the green threshold (>75).` });
+  }
+
+  const pii = val("PII");
+  if (pii != null && liveIds.includes("PII")) {
+    const m = pii / 10;
+    if (m < 4.0) alerts.push({ t: "red", msg: `Mosaic ${m.toFixed(1)}/10 — below the defensive threshold (<4.0).` });
+    else if (m > 7.5) alerts.push({ t: "green", msg: `Mosaic ${m.toFixed(1)}/10 — above the risk-on threshold (>7.5).` });
+  }
+
+  if (!alerts.length) alerts.push({ t: "amber", msg: "No monitored index is currently past a defined alert threshold." });
+  return alerts.map(a => ({ ...a, time: "now" }));
 };
 
 // ─── MICRO COMPONENTS ────────────────────────────────────────────────────────
@@ -195,34 +280,27 @@ const GaugeBar = ({ val, max = 100, col = C.gold, h = 3 }) => (
 // ═══════════════════════════════════════════════════════════════════════════════
 // HOME PAGE
 // ═══════════════════════════════════════════════════════════════════════════════
-const HOME_INDEX_TABLES = {
-  CCQI: ["index_ccqi", "ccqi_value"], DYOI: ["index_dyoi", "dyoi_value"],
-  RTAI: ["rtai_index", "value"], SSSI: ["sssi_index", "value"],
-  XSQI: ["xsqi_index", "value"], ETACI: ["etaci_index", "value"],
-  CAVI: ["cavi_index", "value"], XCDI: ["xcdi_index", "value"], PII: ["pii_index", "value"],
-};
 const HomePage = ({ onNavigate }) => {
   // v3 (2026-08-04): this public homepage strip previously jittered every 2s via
   // Math.random() regardless of any real data — visible to every visitor, logged in
   // or not. Now pulls the same real per-index rows the dashboard uses; falls back to
   // the static seed value (no animation) if Supabase isn't reachable.
+  // v5 (2026-08-11): was fetching all 9 tables directly with the anon key — i.e. every
+  // visitor, paying or not, saw the full live Institutional-tier dataset on the public
+  // marketing page. Now goes through the gated get-index-data function, which for an
+  // unauthenticated visitor returns only CCQI+DYOI at T-1, matching the Free tier's
+  // actual advertised entitlement on the pricing page.
   const [lives, setLives] = useState(INDICES.map(x => x.base));
   useEffect(() => {
-    if (!SB_HEADERS) return;
     const fetchHome = async () => {
-      try {
-        const entries = Object.entries(HOME_INDEX_TABLES);
-        const results = await Promise.all(entries.map(([, [table]]) =>
-          fetch(`${SB_URL}/rest/v1/${table}?select=*&order=timestamp.desc&limit=1`, { headers: SB_HEADERS })
-            .then(r => r.json()).catch(() => null)));
-        const newBase = INDICES.map(idx => idx.base);
-        entries.forEach(([id, [, col]], i) => {
-          const row = results[i]?.[0];
-          const pos = INDICES.findIndex(x => x.id === id);
-          if (row && row[col] != null && pos !== -1) newBase[pos] = parseFloat(row[col]);
-        });
-        setLives(newBase);
-      } catch (e) { /* keep static seed values */ }
+      const res = await fetchIndexData("home", null);
+      if (!res?.indices) return; // keep static seed values
+      const newBase = INDICES.map(idx => idx.base);
+      Object.entries(res.indices).forEach(([id, entry]) => {
+        const pos = INDICES.findIndex(x => x.id === id);
+        if (entry?.value != null && pos !== -1) newBase[pos] = entry.value;
+      });
+      setLives(newBase);
     };
     fetchHome();
     const id = setInterval(fetchHome, 60000);
@@ -330,7 +408,10 @@ const HomePage = ({ onNavigate }) => {
             <div style={{ background: C.bg, border: `1px solid ${C.gold}40`, padding: 30, position: "relative" }}>
               <div style={{ position: "absolute", top: -1, left: 0, right: 0, height: 2, background: `linear-gradient(90deg, ${C.gold}, ${C.goldL})` }} />
               <div className="mono" style={{ fontSize: 12, color: C.green, letterSpacing: ".1em", marginBottom: 20 }}>STEELLDY INDEX SUITE</div>
-              {[["Annual Cost (Analyst)", "€5,880/seat"], ["RWA Coverage", "50+ protocols, unified"], ["On-Chain Data", "XRPL, DeFi, native"], ["MiCA/CSRD Scoring", "ETACI index, real-time"], ["Prediction Markets", "STEELLDY Oracle Integration"]].map(([l, v]) => (
+              {/* v2 (2026-08-05): "STEELLDY Oracle Integration" claimed a live Polymarket feed —
+                  the polymarket_oracle table holds one row, dated 2026-04-03, never updated
+                  since. No pipeline writes to it. Fixed to state the true status. */}
+              {[["Annual Cost (Analyst)", "€5,880/seat"], ["RWA Coverage", "50+ protocols, unified"], ["On-Chain Data", "XRPL, DeFi, native"], ["MiCA/CSRD Scoring", "ETACI index, hourly-updated"], ["Prediction Markets", "Roadmap — not yet live"]].map(([l, v]) => (
                 <div key={l} style={{ display: "flex", justifyContent: "space-between", padding: "10px 0", borderBottom: `1px solid ${C.border}` }}>
                   <span style={{ fontSize: 13, color: C.dim }}>{l}</span>
                   <span className="mono" style={{ fontSize: 13, color: C.green }}>{v}</span>
@@ -347,14 +428,18 @@ const HomePage = ({ onNavigate }) => {
           <span className="mono" style={{ fontSize: 11, color: C.gold, letterSpacing: ".2em" }}>PROPRIETARY TECHNOLOGY</span>
           <h2 style={{ fontSize: 36, fontWeight: 300, color: C.white, marginTop: 12 }}>Six Engines. One Signal.</h2>
         </div>
+        {/* v2 (2026-08-05): the previous six cards described capabilities (Markov-switching
+            regimes, OCEAN psychographic modeling, Hawkes processes, Avellaneda-Stoikov market
+            making, dark web intelligence, 52-signal cross-validation) that no script in this
+            codebase implements. Replaced with the six real stages of the actual pipeline. */}
         <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 16 }}>
           {[
-            ["SRE", "STEELLDY Risk Engine", "Factor decomposition, VaR/CVaR, Markov-switching regimes, tail risk modeling"],
-            ["SGI", "Graph Intelligence", "Network analysis, entity resolution, institutional flow tracking, validator graphs"],
-            ["SBE", "Behavioral Engine", "NLP sentiment extraction, OCEAN psychographic modeling, retail capitulation detection"],
-            ["SOS", "OSINT Scanner", "Regulatory filing scraping, MiCA/ACPR/ESMA monitoring, dark web intelligence"],
-            ["SMA", "Mosaic Aggregator", "52-signal cross-validation, Steven Cohen methodology, Bayesian probability composite"],
-            ["SMM", "Market Making", "Avellaneda-Stoikov spreads, Kalman EKF pricing, Hawkes processes, Thompson Sampling"],
+            ["ING", "Data Ingestion", "9 dedicated scripts pulling from public APIs: CoinGecko, DeFi Llama, XRPScan, Verra Registry, Alternative.me, BIS/Atlantic Council CBDC Tracker"],
+            ["SCR", "Scoring", "VPIN-inspired informed-flow detection, EWMA peg-deviation scoring, sigmoid-based continuous risk penalties, log-scaled TVL scoring"],
+            ["AGG", "Aggregation", "Market-cap-weighted composite construction across each index's underlying assets or protocols"],
+            ["AUT", "Automation", "GitHub Actions cron jobs, hourly and half-hourly, no manual intervention in the calculation"],
+            ["STO", "Storage", "Supabase Postgres, one table per index, tier-based access controls (in progress)"],
+            ["DEL", "Delivery", "REST API via PostgREST, live dashboard refresh on signed-in and public pages"],
           ].map(([id, name, desc]) => (
             <div key={id} style={{ background: C.panel2, border: `1px solid ${C.border}`, padding: 24 }}>
               <div className="mono" style={{ fontSize: 20, color: C.gold, fontWeight: 700, marginBottom: 4 }}>{id}</div>
@@ -499,11 +584,16 @@ const DashboardPage = () => {
   const [mosaic, setMosaic] = useState(6.8);
   const [clock, setClock] = useState("");
   const [lives, setLives] = useState(INDICES.map(x => x.base));
-  const [vpin, setVpin] = useState(0.42);
+  const [vpin, setVpin] = useState(null);
   const [sbConnected, setSbConnected] = useState(false);
   const [polyProbs, setPolyProbs] = useState([]);
   const [macroData, setMacroData] = useState(MACRO_DEFAULT);
-  const [riskData, setRiskData] = useState({ var95: "-0.40", cvar95: "-0.52", vpin_core: 0.35, ts: 0.34 });
+  // v4 (2026-08-06): var95/var99/cvar95 are now historical-simulation VaR on BTC daily log
+  // returns (fractions, e.g. -0.032 = -3.2% 1-day loss at 95% confidence), vpin a Bulk
+  // Volume Classification informed-trading proxy — both computed by
+  // scripts/steelldy_risk_feed.py and written to quant_risk_jsm3. null until a fresh row
+  // arrives; the UI renders null as "--", never a placeholder number.
+  const [riskData, setRiskData] = useState({ var95: null, var99: null, cvar95: null, vpin: null, fresh: false });
   const [liveIds, setLiveIds] = useState([]); // v3: which indices actually returned a real row this fetch
   const baseRef = useRef(INDICES.map(x => x.base));
   const isIdxLive = (idx) => (sbConnected ? liveIds.includes(idx.id) : idx.live);
@@ -516,54 +606,83 @@ const DashboardPage = () => {
   // CAVI/XCDI/PII were failing silently on a schema mismatch between the Python script's
   // output and the table columns — fixed via migration, see cavi_index/xcdi_index/
   // pii_index). This now fetches each index's own latest real row. No synthetic noise.
-  const INDEX_TABLES = {
-    CCQI: ["index_ccqi", "ccqi_value"], DYOI: ["index_dyoi", "dyoi_value"],
-    RTAI: ["rtai_index", "value"], SSSI: ["sssi_index", "value"],
-    XSQI: ["xsqi_index", "value"], ETACI: ["etaci_index", "value"],
-    CAVI: ["cavi_index", "value"], XCDI: ["xcdi_index", "value"], PII: ["pii_index", "value"],
-  };
+  // v5 (2026-08-11): was fetching all 9 tables + quant_risk_jsm3 directly with the anon
+  // key, identically for every signed-in user regardless of tier — an Analyst paying
+  // €490/mo and a free account saw the exact same request. VPIN/VaR/CVaR (quant_risk_jsm3)
+  // is a Professional-tier feature per the pricing page but had zero gating at all, not
+  // even client-side. Both now go through get-index-data with the caller's real Clerk
+  // session token, which the function verifies server-side before deciding what to return.
+  const { getToken } = useAuth();
 
   useEffect(() => {
-    if (!SB_HEADERS) return;
     const fetchSB = async () => {
       try {
-        const idxEntries = Object.entries(INDEX_TABLES);
-        const [idxResults, rP, rR, rM] = await Promise.all([
-          Promise.all(idxEntries.map(([, [table]]) =>
-            fetch(`${SB_URL}/rest/v1/${table}?select=*&order=timestamp.desc&limit=1`, { headers: SB_HEADERS })
-              .then(r => r.json()).catch(() => null))),
-          fetch(`${SB_URL}/rest/v1/polymarket_oracle?select=*&order=timestamp.desc&limit=5`, { headers: SB_HEADERS }).then(r => r.json()),
-          fetch(`${SB_URL}/rest/v1/quant_risk_jsm3?select=*&order=timestamp.desc&limit=1`, { headers: SB_HEADERS }).then(r => r.json()),
-          fetch(`${SB_URL}/rest/v1/macro_feed_live?select=*&order=timestamp.desc&limit=1`, { headers: SB_HEADERS }).then(r => r.json()),
+        const token = await getToken().catch(() => null);
+        const [idxRes, riskRes, rP, rM, cg] = await Promise.all([
+          fetchIndexData("dashboard", token),
+          fetchIndexData("risk", token),
+          SB_HEADERS ? fetch(`${SB_URL}/rest/v1/polymarket_oracle?select=*&order=timestamp.desc&limit=5`, { headers: SB_HEADERS }).then(r => r.json()).catch(() => null) : null,
+          SB_HEADERS ? fetch(`${SB_URL}/rest/v1/macro_feed_live?select=*&order=timestamp.desc&limit=1`, { headers: SB_HEADERS }).then(r => r.json()).catch(() => null) : null,
+          // v4 (2026-08-06): BTC previously came from macro_feed_live, a table that hasn't
+          // been written to since ~April 2026 — that's why the dashboard showed a stale
+          // $71,018. XRP and ETH were never fetched at all: literal hardcoded strings
+          // "$2.48" / "$3,820" in the source, both labeled LIVE. Fixed by fetching genuine
+          // real-time prices + 24h change from CoinGecko's public API — the same data
+          // source the free-indices Python script already uses server-side.
+          fetch(`https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ripple,ethereum&vs_currencies=usd&include_24hr_change=true`)
+            .then(r => r.json()).catch(() => null),
         ]);
-        let anyLive = false;
         const newBase = INDICES.map(idx => idx.base);
         const newLiveIds = [];
-        let piiMosaic = null;
-        idxEntries.forEach(([id, [, col]], i) => {
-          const row = idxResults[i]?.[0];
+        Object.entries(idxRes?.indices || {}).forEach(([id, entry]) => {
           const pos = INDICES.findIndex(x => x.id === id);
-          if (row && row[col] != null && pos !== -1) {
-            newBase[pos] = parseFloat(row[col]);
-            anyLive = true;
+          if (entry?.value != null && pos !== -1) {
+            newBase[pos] = entry.value;
             newLiveIds.push(id);
-            if (id === "PII" && row.mosaic_score != null) piiMosaic = parseFloat(row.mosaic_score);
           }
         });
         baseRef.current = newBase;
         setLives(newBase);
         setLiveIds(newLiveIds);
-        if (piiMosaic != null) setMosaic(piiMosaic);
+        // v4 (2026-08-06): this used to read row.mosaic_score from pii_index — a column
+        // that doesn't exist on that table (it only exists on the orphaned legacy
+        // index_pii table). So piiMosaic was always null and setMosaic never actually
+        // fired: the Mosaic Score gauge shown across the dashboard was permanently
+        // stuck at its useState(6.8) default, dressed up as a live "FULL RISK-ON /
+        // MODERATE BULLISH / DEFENSIVE" reading. Fixed to derive it from PII's real
+        // live value (already fetched above), scaled to /10.
+        const piiPos = INDICES.findIndex(x => x.id === "PII");
+        if (piiPos !== -1 && newLiveIds.includes("PII")) setMosaic(newBase[piiPos] / 10);
         if (rP?.length) setPolyProbs(rP.map(p => ({ q: p.event_ticker, p: parseFloat(p.probability_percentage), trend: 0 })));
-        if (rR?.[0]) { setRiskData({ var95: rR[0].var_95, cvar95: rR[0].cvar_95, vpin_core: parseFloat(rR[0].vpin_core), ts: 0.34 }); setVpin(parseFloat(rR[0].vpin_core)); }
-        if (rM?.[0]) setMacroData([
-          { k: "DXY", v: rM[0].dxy_value?.toFixed(2) || "--", chg: "LIVE", dir: 1 },
-          { k: "VIX", v: rM[0].vix_value?.toFixed(2) || "--", chg: "LIVE", dir: 1 },
-          { k: "EUA", v: "€" + (rM[0].carbon_eu_price?.toFixed(2) || "--"), chg: "LIVE", dir: 1 },
-          { k: "BTC", v: "$" + (rM[0].btc_price?.toFixed(0) || "--"), chg: "LIVE", dir: 1 },
-          { k: "XRP", v: "$2.48", chg: "LIVE", dir: 1 }, { k: "ETH", v: "$3,820", chg: "LIVE", dir: 1 }
+        const riskRow = riskRes?.risk;
+        if (riskRow) {
+          const riskFresh = riskRow.timestamp && (Date.now() - new Date(riskRow.timestamp).getTime()) < 2 * 60 * 60 * 1000;
+          const vp = riskRow.vpin_core != null ? parseFloat(riskRow.vpin_core) : null;
+          setRiskData({
+            var95: riskRow.var_95 != null ? parseFloat(riskRow.var_95) : null,
+            var99: riskRow.var_99 != null ? parseFloat(riskRow.var_99) : null,
+            cvar95: riskRow.cvar_95 != null ? parseFloat(riskRow.cvar_95) : null,
+            vpin: vp,
+            fresh: riskFresh,
+          });
+          if (vp != null) setVpin(vp);
+        }
+        // v4: DXY/VIX/EUA have no free real-time source and still come from macro_feed_live,
+        // which today is only updated manually. Rather than always claiming LIVE regardless
+        // of true freshness, check the row's own timestamp and label it honestly.
+        const macroRow = rM?.[0];
+        const macroFresh = macroRow?.timestamp && (Date.now() - new Date(macroRow.timestamp).getTime()) < 2 * 60 * 60 * 1000;
+        const macroTag = macroFresh ? "LIVE" : "STALE";
+        const cgChg = (v) => v == null ? "--" : (v >= 0 ? "+" : "") + v.toFixed(1) + "%";
+        setMacroData([
+          { k: "DXY", v: macroRow?.dxy_value?.toFixed(2) || "--", chg: macroTag, dir: 1 },
+          { k: "VIX", v: macroRow?.vix_value?.toFixed(2) || "--", chg: macroTag, dir: 1 },
+          { k: "EUA", v: "€" + (macroRow?.carbon_eu_price?.toFixed(2) || "--"), chg: macroTag, dir: 1 },
+          { k: "BTC", v: cg?.bitcoin ? "$" + Math.round(cg.bitcoin.usd).toLocaleString() : "--", chg: cgChg(cg?.bitcoin?.usd_24h_change), dir: (cg?.bitcoin?.usd_24h_change ?? 0) >= 0 ? 1 : -1 },
+          { k: "XRP", v: cg?.ripple ? "$" + cg.ripple.usd.toFixed(2) : "--", chg: cgChg(cg?.ripple?.usd_24h_change), dir: (cg?.ripple?.usd_24h_change ?? 0) >= 0 ? 1 : -1 },
+          { k: "ETH", v: cg?.ethereum ? "$" + Math.round(cg.ethereum.usd).toLocaleString() : "--", chg: cgChg(cg?.ethereum?.usd_24h_change), dir: (cg?.ethereum?.usd_24h_change ?? 0) >= 0 ? 1 : -1 },
         ]);
-        setSbConnected(anyLive);
+        setSbConnected(newLiveIds.length > 0);
       } catch (e) { setSbConnected(false); }
     };
     fetchSB();
@@ -585,7 +704,7 @@ const DashboardPage = () => {
   const mCol = mosaic >= 7.5 ? C.green : mosaic >= 5 ? C.amber : C.red;
   const dashTabs = [
     { id: "dashboard", label: "Dashboard" }, { id: "indices", label: "9 Index Suite" },
-    { id: "risk", label: "Risk · JS-M³" }, { id: "oracle", label: "Oracle" },
+    { id: "risk", label: "Risk" }, { id: "oracle", label: "Oracle" },
     { id: "commodity", label: "Commodity" }, { id: "protocol", label: "Sentinel" },
     { id: "validation", label: "Validation" },
   ];
@@ -600,7 +719,7 @@ const DashboardPage = () => {
             <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
               <div>
                 <div className="cond" style={{ fontSize: 24, fontWeight: 900, color: C.gold, letterSpacing: ".12em", lineHeight: 1 }}>STEELLDY</div>
-                <div style={{ fontSize: 8, color: C.dim, letterSpacing: ".1em", marginTop: 2 }}>SMEA v2.0 · 9 INDICES · JS-M³ · v4.0</div>
+                <div style={{ fontSize: 8, color: C.dim, letterSpacing: ".1em", marginTop: 2 }}>9 INDICES · REAL-TIME DATA PIPELINE</div>
               </div>
               <div style={{ width: 1, height: 28, background: C.borderB }} />
               <div style={{ display: "flex", gap: 16 }}>
@@ -608,7 +727,7 @@ const DashboardPage = () => {
                     strings — no Markov-switching regime model exists in the backend, and
                     12.8σ is not a real computed statistic. Replaced with values actually
                     backed by state. Fixed 2026-08-03. */}
-                {[["Mosaic", mosaic.toFixed(1) + "/10", mCol], ["Data Mode", sbConnected ? "LIVE" : "SIMULATION", sbConnected ? C.green : C.amber], ["Indices Live", "2/9", C.green]].map(([l, v, c]) => (
+                {[["Mosaic", mosaic.toFixed(1) + "/10", mCol], ["Data Mode", sbConnected ? "LIVE" : "SIMULATION", sbConnected ? C.green : C.amber], ["Indices Live", `${liveIds.length}/9`, liveIds.length === 9 ? C.green : C.amber]].map(([l, v, c]) => (
                   <div key={l}><div style={{ fontSize: 8, color: C.dim, letterSpacing: ".06em", textTransform: "uppercase" }}>{l}</div><div className="mono-alt" style={{ fontSize: 11, color: c }}>{v}</div></div>
                 ))}
               </div>
@@ -679,25 +798,15 @@ const DashboardPage = () => {
             <div className="fade-in" style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12 }}>
               <div>
                 <PanelBox border={C.gold}>
-                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}><DLbl col={C.gold}>Mosaic Score 4.2</DLbl><Badge col={mCol}>{mosaic >= 7.5 ? "BULLISH" : mosaic >= 5 ? "NEUTRAL" : "BEARISH"}</Badge></div>
+                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}><DLbl col={C.gold}>Mosaic Score</DLbl><Badge col={mCol}>{mosaic >= 7.5 ? "BULLISH" : mosaic >= 5 ? "NEUTRAL" : "BEARISH"}</Badge></div>
                   <div className="mono-alt" style={{ fontSize: 48, color: mCol, lineHeight: 1 }}>{mosaic.toFixed(1)}</div>
-                  <div style={{ height: 50, marginTop: 8 }}>
-                    <ResponsiveContainer width="100%" height={50}>
-                      <AreaChart data={Array.from({ length: 24 }, (_, i) => ({ i, v: 4 + Math.sin(i * .4) * 2 + Math.random() * 1.5 }))}>
-                        <defs><linearGradient id="mg" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor={mCol} stopOpacity={.4} /><stop offset="95%" stopColor={mCol} stopOpacity={0} /></linearGradient></defs>
-                        <ReferenceLine y={7.5} stroke={C.green} strokeDasharray="3 3" strokeWidth={1} />
-                        <ReferenceLine y={4} stroke={C.red} strokeDasharray="3 3" strokeWidth={1} />
-                        <Area type="monotone" dataKey="v" stroke={mCol} strokeWidth={2} fill="url(#mg)" dot={false} isAnimationActive={false} />
-                      </AreaChart>
-                    </ResponsiveContainer>
-                  </div>
                   <Divider />
-                  <div style={{ fontSize: 9, color: C.dim }}>Signal_final = 0.50×T1 + 0.30×T2 + 0.20×T3 · 52 signals composite</div>
+                  <div style={{ fontSize: 9, color: C.dim }}>= PII / 10. PII = 0.25×Institutional Flow + 0.25×Fear&amp;Greed + 0.25×Market Integrity + 0.25×Mosaic signal (avg of the other three).</div>
                 </PanelBox>
                 <div style={{ marginTop: 12 }}>
                   <PanelBox border={C.border}>
                     <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}><DLbl>Live Alerts</DLbl><div className="live-dot" /></div>
-                    {ALERTS_INIT.map((a, i) => (
+                    {computeLiveAlerts(lives, macroData, liveIds).map((a, i) => (
                       <div key={i} className="alert-row" style={{ borderLeftColor: a.t === "red" ? C.red : a.t === "amber" ? C.amber : C.green, background: a.t === "red" ? `${C.red}08` : a.t === "amber" ? `${C.amber}08` : `${C.green}08` }}>
                         <Dot status={a.t} /><span className="mono-alt" style={{ fontSize: 9, color: C.dim, width: 32 }}>{a.time}</span><span style={{ flex: 1 }}>{a.msg}</span>
                       </div>
@@ -707,7 +816,7 @@ const DashboardPage = () => {
               </div>
 
               <PanelBox border={C.gold}>
-                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 10 }}><DLbl col={C.gold}>STEELLDY Oracle Intelligence</DLbl><Badge col={C.gold}>{sbConnected ? "LIVE" : "SIMULATED"}</Badge></div>
+                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 10 }}><DLbl col={C.gold}>STEELLDY Oracle Intelligence</DLbl><Badge col={polyProbs.length ? C.gold : C.amber}>{polyProbs.length ? "LIVE" : "ROADMAP · illustrative"}</Badge></div>
                 {(polyProbs.length ? polyProbs : [
                   { q: "Trump crypto tax eliminated Jun 30", p: 66 }, { q: "USDT market share loss >10%", p: 23 },
                   { q: "Digital Euro pilot EOY 2026", p: 45 }, { q: "XRP ETF approved SEC 2026", p: 58 }, { q: "MiCA EMT full enforcement Q3", p: 72 }
@@ -725,29 +834,24 @@ const DashboardPage = () => {
 
               <div>
                 <PanelBox border={C.jsblue}>
-                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 10 }}><DLbl col={C.jsblue}>JS-M³ Risk Engine</DLbl><Badge col={C.green}>ACTIVE</Badge></div>
+                  {/* v4 (2026-08-06) — task #15: "JS-M³ Risk Engine ACTIVE" used to pair real
+                      VaR/CVaR fields with "Toxicity" (an undefined, permanently-hardcoded 0.34)
+                      and a footer line claiming Avellaneda-Stoikov/Kalman/Hawkes/Thompson
+                      Sampling — none of which exist anywhere in this codebase. STEELLDY is a
+                      data vendor, not a market maker; that footer line and the Toxicity field
+                      are removed rather than reframed. VaR/CVaR/VPIN below are now genuinely
+                      computed by scripts/steelldy_risk_feed.py (historical simulation VaR on
+                      BTC returns; BVC-based VPIN proxy — see script docstring for the exact,
+                      citable methodology) and render "--" until a fresh row lands. */}
+                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 10 }}><DLbl col={C.jsblue}>BTC Risk Metrics</DLbl><Badge col={riskData.fresh ? C.green : C.amber}>{riskData.fresh ? "LIVE" : "STALE"}</Badge></div>
                   <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-                    {[["VaR 95%", riskData.var95 + "M", C.green], ["CVaR 95%", riskData.cvar95 + "M", C.amber], ["VPIN Core", riskData.vpin_core.toFixed(3), riskData.vpin_core > 0.4 ? C.red : C.green], ["Toxicity", riskData.ts, C.blueL]].map(([l, v, c]) => (
+                    {[["VaR 95% (1d)", riskData.var95 != null ? (riskData.var95 * 100).toFixed(2) + "%" : "--", C.green], ["CVaR 95% (1d)", riskData.cvar95 != null ? (riskData.cvar95 * 100).toFixed(2) + "%" : "--", C.amber], ["VPIN proxy (BVC)", riskData.vpin != null ? riskData.vpin.toFixed(3) : "--", riskData.vpin > 0.4 ? C.red : C.green]].map(([l, v, c]) => (
                       <div key={l} style={{ background: C.bg, border: `1px solid ${C.border}`, padding: 8, textAlign: "center" }}><DLbl>{l}</DLbl><DVal col={c} sz={15}>{v}</DVal></div>
                     ))}
                   </div>
                   <Divider />
-                  <div style={{ fontSize: 9, color: C.dim }}>Avellaneda-Stoikov · Kalman EKF · Hawkes · Thompson Sampling</div>
+                  <div style={{ fontSize: 9, color: C.dim }}>Historical simulation VaR/CVaR on BTC daily log returns (Basel/BCBS-style, non-parametric). VPIN proxy via Bulk Volume Classification (Easley, López de Prado &amp; O'Hara, 2012) — not tick-level VPIN.</div>
                 </PanelBox>
-                <div style={{ marginTop: 12 }}>
-                  <PanelBox border={C.border}>
-                    <DLbl>AIS Maritime GeoRisk</DLbl>
-                    {AIS_ROUTES.map((r, i) => (
-                      <div key={i} className="drow">
-                        <div style={{ fontSize: 10 }}>{r.name}</div>
-                        <div style={{ display: "flex", alignItems: "center", gap: 6, width: 80 }}>
-                          <GaugeBar val={r.risk} col={r.color} h={4} />
-                          <span className="mono-alt" style={{ fontSize: 10, color: r.color, width: 24 }}>{r.risk}</span>
-                        </div>
-                      </div>
-                    ))}
-                  </PanelBox>
-                </div>
               </div>
             </div>
           )}
@@ -805,66 +909,45 @@ const DashboardPage = () => {
             <div className="fade-in" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
               <div>
                 <PanelBox border={C.red}>
-                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 10 }}><DLbl col={C.red}>SRE Risk Engine 12.4</DLbl><Badge col={C.dim}>Portfolio €10M</Badge></div>
+                  {/* v4 (2026-08-06) — task #15: "Portfolio €10M" and the Stress Scenarios
+                      list (probabilities and P&L impacts) were entirely invented — STEELLDY
+                      doesn't manage a portfolio or run scenario stress tests; it's a data
+                      vendor. Removed rather than reframed. VaR/CVaR below are real historical
+                      simulation figures on BTC returns, expressed as % (not tied to a
+                      fictional €10M book). */}
+                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 10 }}><DLbl col={C.red}>BTC Historical VaR / CVaR</DLbl><Badge col={riskData.fresh ? C.green : C.amber}>{riskData.fresh ? "LIVE" : "STALE"}</Badge></div>
                   <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8, marginBottom: 12 }}>
-                    {[["VaR₉₅%", "€" + riskData.var95 + "M", C.green], ["CVaR₉₅%", "€" + riskData.cvar95 + "M", C.amber], ["VaR₉₉%", "€-0.58M", C.red]].map(([l, v, c]) => (
+                    {[["VaR₉₅% (1d)", riskData.var95 != null ? (riskData.var95 * 100).toFixed(2) + "%" : "--", C.green], ["CVaR₉₅% (1d)", riskData.cvar95 != null ? (riskData.cvar95 * 100).toFixed(2) + "%" : "--", C.amber], ["VaR₉₉% (1d)", riskData.var99 != null ? (riskData.var99 * 100).toFixed(2) + "%" : "--", C.red]].map(([l, v, c]) => (
                       <div key={l} style={{ background: C.bg, border: `1px solid ${C.border}`, padding: 8, textAlign: "center" }}><DLbl>{l}</DLbl><DVal col={c} sz={16}>{v}</DVal></div>
                     ))}
                   </div>
-                  <DLbl>Stress Scenarios</DLbl>
-                  {[["Regulatory Crackdown (SEC/ESMA)", 18, -22], ["Stablecoin Depeg (USDT)", 23, -18], ["DeFi Exploit >$500M", 8, -15], ["MiCA EMT Full Enforcement", 72, +22], ["BTC Bull Run $100K", 41, +34]].map(([n, p, imp]) => (
-                    <div key={n} className="drow"><div style={{ fontSize: 10, maxWidth: "55%" }}>{n}</div><div style={{ display: "flex", gap: 6 }}><Badge col={C.dim}>{p}%</Badge><span className="mono-alt" style={{ fontSize: 11, color: imp > 0 ? C.green : C.red }}>{imp > 0 ? "+" : ""}{imp}%</span></div></div>
-                  ))}
+                  <div style={{ fontSize: 9, color: C.dim }}>Non-parametric historical simulation on BTC daily log returns (Basel/BCBS-style), computed by scripts/steelldy_risk_feed.py.</div>
                 </PanelBox>
                 <div style={{ marginTop: 12 }}>
                   <PanelBox border={C.blueL}>
-                    <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}><DLbl col={C.blueL}>VPIN · Dark Pools ATS</DLbl><Badge col={C.blueL}>SMM Engine 2.1</Badge></div>
-                    <div style={{ display: "flex", alignItems: "flex-end", gap: 16, marginBottom: 8 }}>
-                      <div>
-                        <DLbl>VPIN BTC/USD</DLbl>
-                        <div className="mono-alt" style={{ fontSize: 32, color: vpin > 0.4 ? C.red : vpin > 0.2 ? C.amber : C.green, lineHeight: 1 }}>{vpin.toFixed(2)}</div>
-                        <div className="cond" style={{ fontSize: 10, fontWeight: 700, color: vpin > 0.4 ? C.red : vpin > 0.2 ? C.amber : C.green, letterSpacing: ".06em", textTransform: "uppercase", marginTop: 2 }}>{vpin > 0.4 ? "INFORMED TRADING" : vpin > 0.2 ? "TRANSITOIRE" : "NOISE"}</div>
-                      </div>
-                      <div style={{ flex: 1, height: 40 }}>
-                        <ResponsiveContainer width="100%" height={40}>
-                          <LineChart data={Array.from({ length: 20 }, (_, i) => ({ i, v: rnd(.15, .55) }))}>
-                            <ReferenceLine y={.4} stroke={C.red} strokeDasharray="3 3" strokeWidth={1} />
-                            <ReferenceLine y={.2} stroke={C.amber} strokeDasharray="3 3" strokeWidth={1} />
-                            <Line type="monotone" dataKey="v" stroke={vpin > 0.4 ? C.red : C.amber} strokeWidth={2} dot={false} isAnimationActive={false} />
-                          </LineChart>
-                        </ResponsiveContainer>
-                      </div>
-                    </div>
+                    {/* v4: "Dark Pools ATS" / "SMM Engine 2.1" implied real block-trade
+                        surveillance that doesn't exist. The number itself is now real (BVC
+                        VPIN proxy) — only the false framing and the Math.random() sparkline
+                        are removed. */}
+                    <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}><DLbl col={C.blueL}>VPIN Proxy (BVC) — BTC/USD</DLbl><Badge col={riskData.fresh ? C.green : C.amber}>{riskData.fresh ? "LIVE" : "STALE"}</Badge></div>
+                    <div className="mono-alt" style={{ fontSize: 32, color: vpin > 0.4 ? C.red : vpin > 0.2 ? C.amber : C.green, lineHeight: 1 }}>{vpin != null ? vpin.toFixed(2) : "--"}</div>
+                    <div className="cond" style={{ fontSize: 10, fontWeight: 700, color: vpin > 0.4 ? C.red : vpin > 0.2 ? C.amber : C.green, letterSpacing: ".06em", textTransform: "uppercase", marginTop: 2 }}>{vpin == null ? "NO DATA" : vpin > 0.4 ? "ELEVATED IMBALANCE" : vpin > 0.2 ? "TRANSITIONAL" : "NOISE"}</div>
+                    <div style={{ fontSize: 9, color: C.dim, marginTop: 6 }}>Bulk Volume Classification approximation (Easley, López de Prado &amp; O'Hara, 2012) on daily OHLCV — not tick-level VPIN.</div>
                   </PanelBox>
                 </div>
               </div>
               <div>
-                <PanelBox border={C.jsblue}>
-                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 10 }}><DLbl col={C.jsblue}>JS-M³ Engine v2.1 — Avellaneda-Stoikov</DLbl><Badge col={C.green}>ACTIVE</Badge></div>
-                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 12 }}>
-                    {[["VPIN Core", riskData.vpin_core.toFixed(3), riskData.vpin_core > 0.4 ? C.red : C.green], ["Toxicity Score", riskData.ts, C.blueL], ["δ* Ask", "1.2 bps", C.goldL], ["δ* Bid", "0.8 bps", C.goldL], ["Hawkes λ", "12.4/s", C.cyan], ["Kelly f*", "27.8%", C.green]].map(([l, v, c]) => (
-                      <div key={l} style={{ background: C.bg, border: `1px solid ${C.border}`, padding: 8, textAlign: "center" }}><DLbl>{l}</DLbl><DVal col={c} sz={14}>{v}</DVal></div>
+                <PanelBox border={C.border}>
+                  <DLbl>Macro Feed</DLbl>
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 6 }}>
+                    {macroData.map(m => (
+                      <div key={m.k} style={{ background: C.bg, border: `1px solid ${C.border}`, padding: 8 }}>
+                        <DLbl>{m.k}</DLbl><DVal col={C.white} sz={14}>{m.v}</DVal>
+                        <div className="mono-alt" style={{ fontSize: 9, color: m.dir >= 0 ? C.green : C.red, marginTop: 2 }}>{m.chg}</div>
+                      </div>
                     ))}
                   </div>
-                  <div style={{ background: C.bg, border: `1px solid ${C.border}`, padding: 8, fontSize: 9, color: C.blueL, fontFamily: "'Share Tech Mono',monospace" }}>
-                    max E[∫₀ᵀ (S+δᵃ)dNᵃ-(S-δᵇ)dNᵇ-γσ²I²/2-λΨ(I,θ) dt]<br />
-                    δ*(I) = 1/k + γσ²I/(2λ) + α·I·1[I&gt;Imax]<br />
-                    γ=0.035 · k=0.80 · α=0.25 · A=12/s (XRPL calibrated)
-                  </div>
                 </PanelBox>
-                <div style={{ marginTop: 12 }}>
-                  <PanelBox border={C.border}>
-                    <DLbl>SMA Intelligence · Macro</DLbl>
-                    <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 6 }}>
-                      {macroData.map(m => (
-                        <div key={m.k} style={{ background: C.bg, border: `1px solid ${C.border}`, padding: 8 }}>
-                          <DLbl>{m.k}</DLbl><DVal col={C.white} sz={14}>{m.v}</DVal>
-                          <div className="mono-alt" style={{ fontSize: 9, color: m.dir >= 0 ? C.green : C.red, marginTop: 2 }}>{m.chg}</div>
-                        </div>
-                      ))}
-                    </div>
-                  </PanelBox>
-                </div>
               </div>
             </div>
           )}
@@ -873,7 +956,7 @@ const DashboardPage = () => {
           {tab === "oracle" && (
             <div className="fade-in" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
               <PanelBox border={C.gold}>
-                <DLbl col={C.gold}>STEELLDY Oracle Intelligence</DLbl>
+                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}><DLbl col={C.gold}>STEELLDY Oracle Intelligence</DLbl><Badge col={polyProbs.length ? C.gold : C.amber}>{polyProbs.length ? "LIVE" : "ROADMAP · illustrative"}</Badge></div>
                 {(polyProbs.length ? polyProbs : [{ q: "Trump crypto tax Jun 30", p: 66 }, { q: "USDT loss >10% Q2", p: 23 }, { q: "Digital Euro pilot EOY", p: 45 }, { q: "XRP ETF SEC 2026", p: 58 }, { q: "MiCA EMT enforcement", p: 72 }]).map((m, i) => (
                   <div key={i} style={{ marginBottom: 10 }}>
                     <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 3 }}><div style={{ fontSize: 10.5, maxWidth: "68%" }}>{m.q}</div><span className="mono-alt" style={{ fontSize: 13, color: m.p >= 50 ? C.green : C.amber, fontWeight: "bold" }}>{m.p}%</span></div>
@@ -882,12 +965,18 @@ const DashboardPage = () => {
                 ))}
               </PanelBox>
               <PanelBox border={C.gold}>
-                <DLbl col={C.gold}>Mosaic Score (Steven Cohen)</DLbl>
+                {/* v4 (2026-08-06) — task #15: "(Steven Cohen)" falsely implied STEELLDY
+                    licenses or implements a real, named individual's proprietary methodology.
+                    The composite breakdown below (Oracle consensus 50%, Dark Pools >$100M 30%,
+                    SGI Network Analysis 20%, SMA corr, SBE Sentiment, Liquidity clusters) was
+                    entirely invented, including a Math.random() jitter on every row's displayed
+                    score. Replaced with the real PII formula and its real components. */}
+                <DLbl col={C.gold}>Mosaic Score</DLbl>
                 <div className="mono-alt" style={{ fontSize: 48, color: mCol, lineHeight: 1 }}>{mosaic.toFixed(1)}</div>
                 <div className="cond" style={{ fontSize: 11, fontWeight: 800, color: mCol, letterSpacing: ".06em", marginTop: 4 }}>{mosaic >= 7.5 ? "FULL RISK-ON" : mosaic >= 5 ? "MODERATE BULLISH" : "DEFENSIVE"}</div>
                 <Divider />
-                {[["STEELLDY Oracle consensus", "50%"], ["Dark Pools >$100M", "30%"], ["SGI Network Analysis", "20%"], ["SMA corr r>0.70", "T2"], ["SBE Sentiment", "T2"], ["Liquidity clusters", "T3"]].map(([n, w]) => (
-                  <div key={n} className="drow"><span style={{ fontSize: 10 }}>{n}</span><div style={{ display: "flex", gap: 6 }}><Badge col={C.dim}>{w}</Badge><span className="mono-alt" style={{ fontSize: 10, color: mCol }}>{(mosaic * (.7 + Math.random() * .4)).toFixed(1)}/10</span></div></div>
+                {[["Institutional Flow (BTC open interest)", "25%"], ["Fear & Greed Index", "25%"], ["Market Integrity (BTC dominance)", "25%"], ["Mosaic signal (avg of the above)", "25%"]].map(([n, w]) => (
+                  <div key={n} className="drow"><span style={{ fontSize: 10 }}>{n}</span><Badge col={C.dim}>{w}</Badge></div>
                 ))}
               </PanelBox>
             </div>
@@ -895,7 +984,13 @@ const DashboardPage = () => {
 
           {/* ─── COMMODITY ─── */}
           {tab === "commodity" && (
-            <div className="fade-in" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+            <div className="fade-in" style={{ display: "grid", gridTemplateColumns: "1fr", gap: 12 }}>
+              {/* v4 (2026-08-06): the AIS Maritime GeoRisk panel that used to sit next to
+                  this one is removed — no AIS/shipping data source exists anywhere in this
+                  codebase (see AIS_ROUTES removal note near the top of this file).
+                  NOTE not yet resolved: COMMODITY_IDX itself (BGI/CGPI/CCFI/VPIN-C below) is
+                  also a hardcoded static array with no computing script behind it — same
+                  fabrication class, flagged for Helen, not fixed in this pass. */}
               <PanelBox border={C.brics}>
                 <DLbl col={C.brics}>Commodity Indices</DLbl>
                 {COMMODITY_IDX.map((c, i) => (
@@ -906,17 +1001,6 @@ const DashboardPage = () => {
                   </div>
                 ))}
               </PanelBox>
-              <PanelBox border={C.red}>
-                <DLbl col={C.red}>AIS Maritime GeoRisk Monitoring</DLbl>
-                {AIS_ROUTES.map((r, i) => (
-                  <div key={i} style={{ marginBottom: 10 }}>
-                    <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 3 }}><span style={{ fontSize: 11, fontWeight: 600 }}>{r.name}</span><span className="mono-alt" style={{ fontSize: 14, color: r.color, fontWeight: "bold" }}>{r.risk}/100</span></div>
-                    <GaugeBar val={r.risk} col={r.color} h={5} />
-                    <div style={{ fontSize: 9, color: C.dim, marginTop: 2 }}>{r.signal}</div>
-                    {i < AIS_ROUTES.length - 1 && <Divider />}
-                  </div>
-                ))}
-              </PanelBox>
             </div>
           )}
 
@@ -924,16 +1008,16 @@ const DashboardPage = () => {
           {tab === "protocol" && (
             <div className="fade-in" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
               <PanelBox border={C.gold}>
-                <DLbl col={C.gold}>Unified Sentinel Protocol — {CHECKPOINTS.length} Checkpoints</DLbl>
+                <DLbl col={C.gold}>Automation Status — {CHECKPOINTS.length} Scripts</DLbl>
+                <div style={{ fontSize: 9, color: C.dim, marginBottom: 8 }}>All jobs share one GitHub Actions cron — every 30 minutes (:00 and :30 UTC). No per-item schedule; status below reflects whether each one returned a fresh row on the last poll.</div>
                 <div style={{ maxHeight: 460, overflowY: "auto" }}>
                   {CHECKPOINTS.map((c, i) => {
-                    const [h] = c.time.split(":").map(Number); const done = h < curHour;
+                    const isLive = c.id === "MACRO" ? (macroData.find(m => m.k === "DXY")?.chg === "LIVE") : liveIds.includes(c.id);
                     return (
-                      <div key={i} className="alert-row" style={{ borderLeftColor: c.st === "red" ? C.red : c.st === "amber" ? C.amber : C.green, opacity: done ? .5 : 1, background: Math.abs(h - curHour) < 1 ? `${C.gold}12` : undefined }}>
-                        <Dot status={done ? "green" : c.st} />
-                        <span className="mono-alt" style={{ fontSize: 9, color: C.dim, width: 32 }}>{c.time}</span>
+                      <div key={i} className="alert-row" style={{ borderLeftColor: isLive ? C.green : C.amber }}>
+                        <Dot status={isLive ? "green" : "amber"} />
                         <div style={{ flex: 1 }}><div style={{ fontSize: 10, color: C.white }}>{c.label}</div><div style={{ fontSize: 8, color: C.dim }}>{c.engine} → {c.signal}</div></div>
-                        {done && <span style={{ fontSize: 8, color: C.green }}>✓</span>}
+                        <span style={{ fontSize: 8, color: isLive ? C.green : C.amber }}>{isLive ? "LIVE" : "BETA"}</span>
                       </div>
                     );
                   })}
@@ -953,7 +1037,7 @@ const DashboardPage = () => {
                 <div style={{ marginTop: 12 }}>
                   <PanelBox border={C.border}>
                     <DLbl>Live Alerts</DLbl>
-                    {ALERTS_INIT.slice(0, 5).map((a, i) => (
+                    {computeLiveAlerts(lives, macroData, liveIds).slice(0, 5).map((a, i) => (
                       <div key={i} className="alert-row" style={{ borderLeftColor: a.t === "red" ? C.red : a.t === "amber" ? C.amber : C.green, background: a.t === "red" ? `${C.red}08` : a.t === "amber" ? `${C.amber}08` : `${C.green}08` }}>
                         <Dot status={a.t} /><span className="mono-alt" style={{ fontSize: 9, color: C.dim, width: 32 }}>{a.time}</span><span style={{ flex: 1 }}>{a.msg}</span>
                       </div>
@@ -1024,9 +1108,9 @@ const DashboardPage = () => {
 
         {/* DASHBOARD FOOTER */}
         <div style={{ borderTop: `1px solid ${C.border}`, padding: "8px 16px", display: "flex", justifyContent: "space-between", fontSize: 9, color: C.dim, background: C.panel, flexWrap: "wrap", gap: 6 }}>
-          <div>STEELLDY Advisory · Gex, France · SMEA v2.0 · JS-M³ · v4.0 · 9 Indices</div>
+          <div>STEELLDY Advisory · Gex, France · 9 Indices</div>
           <div style={{ display: "flex", gap: 10 }}>
-            {["SRE 12.4", "SGI 3.8", "SBE 2.1", "SOS 4.2", "SMA 4.2", "SMM 2.1", "XRPL API", "Supabase"].map(s => <span key={s}>{s}</span>)}
+            {["CoinGecko", "DeFi Llama", "XRPScan", "Verra Registry", "BIS Tracker", "XRPL API", "Supabase"].map(s => <span key={s}>{s}</span>)}
           </div>
           <div>© 2026 STEELLDY · CONFIDENTIAL · Not investment advice</div>
         </div>
@@ -1209,7 +1293,7 @@ function AppInner() {
               <div style={{ fontSize: 11, color: C.dim }}>Advisory · Gex, France · Institutional Quantitative Intelligence</div>
             </div>
             <div style={{ display: "flex", gap: 12, fontSize: 10, color: C.dim }}>
-              {["SRE 12.4", "SGI 3.8", "SBE 2.1", "SOS 4.2", "SMA 4.2", "SMM 2.1"].map(s => <span key={s} className="mono">{s}</span>)}
+              {["Data Ingestion", "Scoring", "Aggregation", "Automation", "Storage", "Delivery"].map(s => <span key={s} className="mono">{s}</span>)}
             </div>
             <div style={{ fontSize: 10, color: C.dim }}>© 2026 STEELLDY · Not investment advice</div>
           </div>
